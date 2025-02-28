@@ -1,8 +1,13 @@
-import Link from "next/link";
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/context/user";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
+  const { currentUser } = useUser();
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 text-black">
       <div className="max-w-md text-center">
@@ -11,7 +16,7 @@ export default function Home() {
           Real-time air quality insights and personalized climate action
           recommendations
         </p>
-        <Link href="/onboarding">
+        <Link href={currentUser ? "/dashboard" : "/onboarding"}>
           <Button className="bg-black text-white hover:bg-gray-800">
             Get Started <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

@@ -5,9 +5,9 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useUser } from "@/context/user";
+import type { User as UserProfile } from "@/interfaces/user";
 import {
   Activity,
   ArrowLeft,
@@ -36,51 +38,48 @@ import { useState } from "react";
 
 export default function Onboarding() {
   const router = useRouter();
+  const { updateUser } = useUser();
+
   const [step, setStep] = useState(1);
   const [locationPermission, setLocationPermission] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(false);
 
-  // User profile data
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("");
-  const [activityLevel, setActivityLevel] = useState("");
-  const [healthConditions, setHealthConditions] = useState<string[]>([]);
-  const [outdoorActivities, setOutdoorActivities] = useState<string[]>([]);
-  const [commute, setCommute] = useState("");
+  const [user, setUser] = useState<UserProfile>({
+    name: "",
+    age: 0,
+    gender: "",
+    activityLevel: "",
+    healthConditions: [],
+    outdoorActivities: [],
+    commute: "",
+  });
 
   const handleHealthConditionChange = (condition: string) => {
-    setHealthConditions((prev) =>
-      prev.includes(condition)
-        ? prev.filter((item) => item !== condition)
-        : [...prev, condition]
-    );
+    setUser((prev) => ({
+      ...prev,
+      healthConditions: prev.healthConditions.includes(condition)
+        ? prev.healthConditions.filter((item) => item !== condition)
+        : [...prev.healthConditions, condition],
+    }));
   };
 
   const handleOutdoorActivityChange = (activity: string) => {
-    setOutdoorActivities((prev) =>
-      prev.includes(activity)
-        ? prev.filter((item) => item !== activity)
-        : [...prev, activity]
-    );
+    setUser((prev) => ({
+      ...prev,
+      outdoorActivities: prev.outdoorActivities.includes(activity)
+        ? prev.outdoorActivities.filter((item) => item !== activity)
+        : [...prev.outdoorActivities, activity],
+    }));
   };
 
   const nextStep = () => {
     if (step < 5) {
       setStep(step + 1);
     } else {
-      // Save user profile data to local storage or state management solution
-      const userProfile = {
-        name,
-        age: Number.parseInt(age),
-        gender,
-        activityLevel,
-        healthConditions,
-        outdoorActivities,
-        commute,
-      };
-      localStorage.setItem("userProfile", JSON.stringify(userProfile));
-      router.push("/dashboard");
+      if (user) {
+        updateUser(user);
+        router.push("/dashboard");
+      }
     }
   };
 
@@ -110,6 +109,7 @@ export default function Onboarding() {
             {step === 5 && "For AI-powered personalized recommendations"}
           </CardDescription>
         </CardHeader>
+        
         <CardContent className="space-y-6">
           {step === 1 && (
             <div className="space-y-4">
@@ -127,30 +127,20 @@ export default function Onboarding() {
           {step === 2 && (
             <div className="space-y-4">
               <div className="grid gap-2">
-                <div className="flex items-center justify-between border-b border-gray-100 py-2">
-                  <span className="font-medium">Good (0-50)</span>
-                  <span className="text-sm text-gray-600">
-                    Minimal health risk
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-gray-100 py-2">
-                  <span className="font-medium">Moderate (51-100)</span>
-                  <span className="text-sm text-gray-600">
-                    Minor respiratory concerns
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-gray-100 py-2">
-                  <span className="font-medium">Unhealthy (101-150)</span>
-                  <span className="text-sm text-gray-600">
-                    Sensitive groups affected
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-gray-100 py-2">
-                  <span className="font-medium">Very Unhealthy (151+)</span>
-                  <span className="text-sm text-gray-600">
-                    Health warnings for everyone
-                  </span>
-                </div>
+                {Object.entries({
+                  "Good (0-50)": "Minimal health risk",
+                  "Moderate (51-100)": "Minor respiratory concerns",
+                  "Unhealthy (101-150)": "Sensitive groups affected",
+                  "Very Unhealthy (151+)": "Health warnings for everyone",
+                }).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between border-b border-gray-100 py-2"
+                  >
+                    <span className="font-medium">{key}</span>
+                    <span className="text-sm text-gray-600">{value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -180,8 +170,6 @@ export default function Onboarding() {
                   onCheckedChange={setNotificationPermission}
                 />
               </div>
-
-              {/* Removed AQI Alert Threshold slider */}
             </div>
           )}
 
@@ -194,8 +182,10 @@ export default function Onboarding() {
               <Input
                 id="name"
                 placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={user?.name}
+                onChange={(e) =>
+                  setUser((prev) => ({ ...prev, name: e.target.value }))
+                }
               />
 
               <div className="grid grid-cols-2 gap-4">
@@ -208,14 +198,24 @@ export default function Onboarding() {
                     id="age"
                     type="number"
                     placeholder="Age"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
+                    value={user?.age}
+                    onChange={(e) =>
+                      setUser((prev) => ({
+                        ...prev,
+                        age: parseInt(e.target.value, 10),
+                      }))
+                    }
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender</Label>
-                  <Select value={gender} onValueChange={setGender}>
+                  <Select
+                    value={user?.gender}
+                    onValueChange={(value) =>
+                      setUser((prev) => ({ ...prev, gender: value }))
+                    }
+                  >
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
@@ -236,26 +236,27 @@ export default function Onboarding() {
                   <Activity className="h-5 w-5" />
                   <Label htmlFor="activity-level">Activity Level</Label>
                 </div>
-                <Select value={activityLevel} onValueChange={setActivityLevel}>
+                <Select
+                  value={user?.activityLevel}
+                  onValueChange={(value) =>
+                    setUser((prev) => ({ ...prev, activityLevel: value }))
+                  }
+                >
                   <SelectTrigger id="activity-level">
                     <SelectValue placeholder="Select your activity level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sedentary">
-                      Sedentary (Little to no exercise)
-                    </SelectItem>
-                    <SelectItem value="light">
-                      Light (Light exercise 1-3 days/week)
-                    </SelectItem>
-                    <SelectItem value="moderate">
-                      Moderate (Moderate exercise 3-5 days/week)
-                    </SelectItem>
-                    <SelectItem value="active">
-                      Active (Hard exercise 6-7 days/week)
-                    </SelectItem>
-                    <SelectItem value="very-active">
-                      Very Active (Professional athlete)
-                    </SelectItem>
+                    {Object.entries({
+                      sedentary: "Sedentary (Little to no exercise)",
+                      light: "Light (Light exercise 1-3 days/week)",
+                      moderate: "Moderate (Moderate exercise 3-5 days/week)",
+                      active: "Active (Hard exercise 6-7 days/week)",
+                      "very-active": "Very Active (Professional athlete)",
+                    }).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {value}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -267,126 +268,60 @@ export default function Onboarding() {
               <div className="space-y-2">
                 <Label>Do you have any of these health conditions?</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="asthma"
-                      checked={healthConditions.includes("asthma")}
-                      onCheckedChange={() =>
-                        handleHealthConditionChange("asthma")
-                      }
-                    />
-                    <Label htmlFor="asthma" className="text-sm">
-                      Asthma
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="allergies"
-                      checked={healthConditions.includes("allergies")}
-                      onCheckedChange={() =>
-                        handleHealthConditionChange("allergies")
-                      }
-                    />
-                    <Label htmlFor="allergies" className="text-sm">
-                      Allergies
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="copd"
-                      checked={healthConditions.includes("copd")}
-                      onCheckedChange={() =>
-                        handleHealthConditionChange("copd")
-                      }
-                    />
-                    <Label htmlFor="copd" className="text-sm">
-                      COPD
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="heart-disease"
-                      checked={healthConditions.includes("heart-disease")}
-                      onCheckedChange={() =>
-                        handleHealthConditionChange("heart-disease")
-                      }
-                    />
-                    <Label htmlFor="heart-disease" className="text-sm">
-                      Heart Disease
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="none"
-                      checked={healthConditions.includes("none")}
-                      onCheckedChange={() =>
-                        handleHealthConditionChange("none")
-                      }
-                    />
-                    <Label htmlFor="none" className="text-sm">
-                      None
-                    </Label>
-                  </div>
+                  {Object.entries({
+                    asthma: "Asthma",
+                    allergies: "Allergies",
+                    copd: "COPD",
+                    "heart-disease": "Heart Disease",
+                    none: "None",
+                  }).map(([key, value]) => (
+                    <div key={key} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={key}
+                        checked={user?.healthConditions.includes(key)}
+                        onCheckedChange={() => handleHealthConditionChange(key)}
+                      />
+                      <Label htmlFor={key} className="text-sm">
+                        {value}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>What outdoor activities do you regularly do?</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="running"
-                      checked={outdoorActivities.includes("running")}
-                      onCheckedChange={() =>
-                        handleOutdoorActivityChange("running")
-                      }
-                    />
-                    <Label htmlFor="running" className="text-sm">
-                      Running
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="cycling"
-                      checked={outdoorActivities.includes("cycling")}
-                      onCheckedChange={() =>
-                        handleOutdoorActivityChange("cycling")
-                      }
-                    />
-                    <Label htmlFor="cycling" className="text-sm">
-                      Cycling
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="walking"
-                      checked={outdoorActivities.includes("walking")}
-                      onCheckedChange={() =>
-                        handleOutdoorActivityChange("walking")
-                      }
-                    />
-                    <Label htmlFor="walking" className="text-sm">
-                      Walking
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="team-sports"
-                      checked={outdoorActivities.includes("team-sports")}
-                      onCheckedChange={() =>
-                        handleOutdoorActivityChange("team-sports")
-                      }
-                    />
-                    <Label htmlFor="team-sports" className="text-sm">
-                      Team Sports
-                    </Label>
-                  </div>
+                  {Object.entries({
+                    running: "Running",
+                    cycling: "Cycling",
+                    walking: "Walking",
+                    "team-sports": "Team Sports",
+                  }).map(([key, value]) => (
+                    <div key={key} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={key}
+                        checked={user?.outdoorActivities.includes(key)}
+                        onCheckedChange={() => handleOutdoorActivityChange(key)}
+                      />
+                      <Label htmlFor={key} className="text-sm">
+                        {value}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>How do you usually commute?</Label>
-                <RadioGroup value={commute} onValueChange={setCommute}>
+                <RadioGroup
+                  value={user?.commute}
+                  onValueChange={(value) =>
+                    setUser((prev) =>
+                      value ? { ...prev, commute: value } : prev
+                    )
+                  }
+                >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="car" id="car" />
                     <Label htmlFor="car">Car</Label>
@@ -411,6 +346,7 @@ export default function Onboarding() {
             </div>
           )}
         </CardContent>
+
         <CardFooter className="flex justify-between">
           <Button
             variant="outline"
