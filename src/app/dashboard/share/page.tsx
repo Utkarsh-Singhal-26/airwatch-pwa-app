@@ -1,33 +1,81 @@
 "use client";
 
+import { AQIChart } from "@/components/aqi-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { AQI } from "@/interfaces/aqi";
+import { fetchAQIData } from "@/lib/dashboard";
+import { getAQILabel } from "@/lib/map-data";
 import {
   ArrowLeft,
-  Check,
   Copy,
   Facebook,
   Linkedin,
   Mail,
   MessageCircle,
+  Share2,
   Twitter,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Share() {
-  const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState("social");
+  const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState<{
+    lat: number;
+    lng: number;
+    name: string;
+  } | null>(null);
+  const [aqiData, setAqiData] = useState<AQI | null>(null);
 
-  const shareUrl = "https://airwatch.app/share/delhi-142";
+  useEffect(() => {
+    const fetchData = () => {
+      fetchAQIData(
+        (loc) => setLocation(loc),
+        (data) => setAqiData(data),
+        (isLoading) => setLoading(isLoading)
+      );
+    };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getShareMessage = () => {
+    if (!aqiData || !location) return "";
+
+    return `Current Air Quality in ${location.name}:
+AQI: ${aqiData.aqi} (${getAQILabel(aqiData.aqi)})
+PM2.5: ${aqiData.pm25} µg/m³
+Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
+  };
+
+  const shareUrl = `https://airwatch.vercel.app/share?lat=${location?.lat || ""}&lng=${
+    location?.lng || ""
+  }&name=${encodeURIComponent(location?.name || "")}`;
+
+  const handleShare = async () => {
+    const shareData = {
+      title: "AirWatch - Real-time Air Quality",
+      text: getShareMessage(),
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(
+          `${shareData.text}\n\nCheck it out: ${shareUrl}`
+        );
+        alert("Share link copied to clipboard!");
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
   };
 
   return (
@@ -45,38 +93,76 @@ export default function Share() {
         <Card className="mb-6 border-gray-200">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle>New Delhi</CardTitle>
-              <div className="text-sm text-gray-500">Updated 5 minutes ago</div>
+              <CardTitle>{location?.name || "Loading..."}</CardTitle>
+              <div className="text-sm text-gray-500">
+                {loading ? (
+                  "Updating..."
+                ) : (
+                  <>
+                    Updated{" "}
+                    {aqiData
+                      ? new Date(aqiData.lastUpdated).toLocaleTimeString()
+                      : "..."}
+                  </>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-6 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-7xl font-bold">142</div>
-                <div className="text-lg font-medium">Unhealthy</div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div
+                  className={`text-6xl font-bold ${loading ? "opacity-50" : ""}`}
+                >
+                  {aqiData ? aqiData.aqi : "..."}
+                </div>
+                <div
+                  className={`text-sm font-medium ${loading ? "opacity-50" : ""}`}
+                >
+                  {aqiData ? getAQILabel(aqiData.aqi) : "Loading..."}
+                </div>
+              </div>
+              <div
+                className={`rounded-md bg-gray-50 p-3 ${loading ? "opacity-50" : ""}`}
+              >
+                <div className="mb-1 text-sm font-medium">
+                  Primary Pollutant
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xl font-bold">PM2.5</span>
+                  <span className="text-sm text-gray-600">
+                    {aqiData ? `${aqiData.pm25} µg/m³` : "..."}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="mb-4 rounded-md bg-gray-50 p-3">
-              <div className="mb-2 text-sm font-medium">
-                Share this air quality data
+            <AQIChart aqiData={aqiData} loading={loading} />
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-md bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">Visibility</div>
+                <div className="font-medium">
+                  {aqiData ? `${aqiData.visibility} km` : "..."}
+                </div>
               </div>
-              <div className="flex items-center">
-                <Input value={shareUrl} readOnly className="mr-2 bg-white" />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopy}
-                  className="border-gray-200"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
+              <div className="rounded-md bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">Pressure</div>
+                <div className="font-medium">
+                  {aqiData ? `${aqiData.pressure} hPa` : "..."}
+                </div>
               </div>
             </div>
+
+            <Button
+              className="mt-6 w-full"
+              size="lg"
+              onClick={handleShare}
+              disabled={!aqiData || !location}
+            >
+              <Share2 className="mr-2 h-5 w-5" />
+              Share Air Quality
+            </Button>
           </CardContent>
         </Card>
 
@@ -85,11 +171,7 @@ export default function Share() {
             <CardTitle>Share Options</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs
-              defaultValue="social"
-              className="w-full"
-              onValueChange={setActiveTab}
-            >
+            <Tabs defaultValue="social" className="w-full">
               <TabsList className="mb-4 grid w-full grid-cols-2">
                 <TabsTrigger value="social">Social Media</TabsTrigger>
                 <TabsTrigger value="message">Message</TabsTrigger>
@@ -135,6 +217,7 @@ export default function Share() {
                   <Button
                     variant="outline"
                     className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
+                    onClick={handleShare}
                   >
                     <Copy className="h-6 w-6" />
                     <span className="text-xs">Copy</span>
@@ -147,10 +230,14 @@ export default function Share() {
                   <div>
                     <Textarea
                       className="h-32 resize-none"
-                      defaultValue={`Current Air Quality in New Delhi is UNHEALTHY (AQI: 142). Primary pollutant is PM2.5. Stay safe and limit outdoor activities. Check more details at: ${shareUrl}`}
+                      value={getShareMessage()}
+                      readOnly
                     />
                   </div>
-                  <Button className="w-full bg-black text-white hover:bg-gray-800">
+                  <Button
+                    className="w-full bg-black text-white hover:bg-gray-800"
+                    onClick={handleShare}
+                  >
                     Share Message
                   </Button>
                 </div>
@@ -167,18 +254,29 @@ export default function Share() {
             <div className="rounded-md border border-gray-200 p-4">
               <div className="mb-2 text-lg font-bold">AirWatch Alert</div>
               <div className="mb-2 text-sm">
-                Current Air Quality in New Delhi is{" "}
-                <span className="font-medium">UNHEALTHY (AQI: 142)</span>
+                Current Air Quality in {location?.name || "Loading..."} is{" "}
+                <span className="font-medium">
+                  {aqiData
+                    ? `${getAQILabel(aqiData.aqi).toUpperCase()} (AQI: ${
+                        aqiData.aqi
+                      })`
+                    : "Loading..."}
+                </span>
               </div>
               <div className="mb-2 text-sm">
-                Primary pollutant: PM2.5 (85 µg/m³)
+                Primary pollutant: PM2.5 (
+                {aqiData ? `${aqiData.pm25} µg/m³` : "..."})
               </div>
               <div className="mb-2 text-sm">
-                Health advisory: Limit outdoor activities. Sensitive groups
-                should stay indoors.
+                Health advisory:{" "}
+                {aqiData && aqiData.aqi > 150
+                  ? "Avoid outdoor activities. Everyone may experience health effects."
+                  : aqiData && aqiData.aqi > 100
+                    ? "Limit outdoor activities. Sensitive groups should stay indoors."
+                    : "Air quality is acceptable for most people."}
               </div>
               <div className="text-xs text-gray-500">
-                Shared via AirWatch • February 27, 2025
+                Shared via AirWatch • {new Date().toLocaleDateString()}
               </div>
             </div>
           </CardContent>

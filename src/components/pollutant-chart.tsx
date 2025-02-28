@@ -9,19 +9,39 @@ import {
   XAxis,
   YAxis,
 } from "@/components/ui/chart";
+import { AQI } from "@/interfaces/aqi";
 
-const data = [
-  { name: "PM2.5", value: 85, limit: 25 },
-  { name: "PM10", value: 120, limit: 50 },
-  { name: "NO2", value: 45, limit: 40 },
-  { name: "O3", value: 30, limit: 100 },
-  { name: "SO2", value: 12, limit: 20 },
-  { name: "CO", value: 0.8, limit: 4 },
-];
+interface PollutantChartProps {
+  aqiData: AQI | null;
+  loading?: boolean;
+}
 
-export function PollutantChart() {
+const WHO_LIMITS = {
+  pm25: 25,
+  pm10: 50,
+  no2: 40,
+  o3: 100,
+  so2: 20,
+  co: 4,
+};
+
+export function PollutantChart({
+  aqiData,
+  loading = false,
+}: PollutantChartProps) {
+  const data = aqiData
+    ? [
+        { name: "PM2.5", value: aqiData.pm25 || 0, limit: WHO_LIMITS.pm25 },
+        { name: "PM10", value: aqiData.pm10 || 0, limit: WHO_LIMITS.pm10 },
+        { name: "NO2", value: aqiData.no2 || 0, limit: WHO_LIMITS.no2 },
+        { name: "O3", value: aqiData.o3 || 0, limit: WHO_LIMITS.o3 },
+        { name: "SO2", value: aqiData.so2 || 0, limit: WHO_LIMITS.so2 },
+        { name: "CO", value: aqiData.co || 0, limit: WHO_LIMITS.co },
+      ]
+    : [];
+
   return (
-    <div className="h-64 w-full">
+    <div className={`h-64 w-full ${loading ? "opacity-50" : ""}`}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -34,7 +54,10 @@ export function PollutantChart() {
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
+          />
           <Tooltip
             contentStyle={{
               backgroundColor: "white",
@@ -42,7 +65,7 @@ export function PollutantChart() {
               borderRadius: "0.375rem",
               fontSize: "0.875rem",
             }}
-            formatter={(value, name, props) => {
+            formatter={(value: number, name, props) => {
               const item = data.find((d) => d.name === props.payload.name);
               const percentage = item
                 ? Math.round((item.value / item.limit) * 100)

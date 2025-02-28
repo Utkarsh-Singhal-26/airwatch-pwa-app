@@ -9,27 +9,42 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  AlertTriangle,
-  Droplets,
-  Home,
-  Leaf,
-  Map,
-  RefreshCw,
-  Settings,
-  Share2,
-  Thermometer,
-  Wind,
-} from "lucide-react";
+import { AQI } from "@/interfaces/aqi";
+import { fetchAQIData } from "@/lib/dashboard";
+import { getAQILabel } from "@/lib/map-data";
+import { Home, Leaf, Map, RefreshCw, Settings, Share2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState<{
+    lat: number;
+    lng: number;
+    name: string;
+  } | null>(null);
+  const [aqiData, setAqiData] = useState<AQI | null>(null);
+
+  useEffect(() => {
+    const fetchData = () => {
+      fetchAQIData(
+        (loc) => setLocation(loc),
+        (data) => setAqiData(data),
+        (isLoading) => setLoading(isLoading)
+      );
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const refreshData = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    fetchAQIData(
+      (loc) => setLocation(loc),
+      (data) => setAqiData(data),
+      (isLoading) => setLoading(isLoading)
+    );
   };
 
   return (
@@ -51,52 +66,60 @@ export default function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               <span>Current Air Quality</span>
-              <span className="text-sm text-gray-500">New Delhi</span>
+              <span className="text-sm text-gray-500">
+                {location?.name || "Loading..."}
+              </span>
             </CardTitle>
-            <CardDescription>Updated 5 minutes ago</CardDescription>
+            <CardDescription>
+              Updated{" "}
+              {aqiData
+                ? new Date(aqiData.lastUpdated).toLocaleTimeString()
+                : "..."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-6xl font-bold">142</div>
-                <div className="text-sm font-medium">Unhealthy</div>
+                <div
+                  className={`text-6xl font-bold ${loading ? "opacity-50" : ""}`}
+                >
+                  {aqiData ? aqiData.aqi : "..."}
+                </div>
+                <div
+                  className={`text-sm font-medium ${loading ? "opacity-50" : ""}`}
+                >
+                  {aqiData ? getAQILabel(aqiData.aqi) : "Loading..."}
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex flex-col items-center">
-                  <Thermometer className="mb-1 h-5 w-5" />
-                  <span>32°C</span>
+              <div
+                className={`rounded-md bg-gray-50 p-3 ${loading ? "opacity-50" : ""}`}
+              >
+                <div className="mb-1 text-sm font-medium">
+                  Primary Pollutant
                 </div>
-                <div className="flex flex-col items-center">
-                  <Droplets className="mb-1 h-5 w-5" />
-                  <span>65%</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Wind className="mb-1 h-5 w-5" />
-                  <span>8 km/h</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <AlertTriangle className="mb-1 h-5 w-5" />
-                  <span>PM2.5</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xl font-bold">PM2.5</span>
+                  <span className="text-sm text-gray-600">
+                    {aqiData ? `${aqiData.pm25} µg/m³` : "..."}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="flex justify-between rounded-md border border-gray-100 p-2">
-                <span>PM2.5</span>
-                <span className="font-medium">85 µg/m³</span>
+            <AQIChart aqiData={aqiData} loading={loading} />
+
+            <div className="my-4 grid grid-cols-2 gap-3">
+              <div className="rounded-md bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">Visibility</div>
+                <div className="font-medium">
+                  {aqiData ? `${aqiData.visibility} km` : "..."}
+                </div>
               </div>
-              <div className="flex justify-between rounded-md border border-gray-100 p-2">
-                <span>PM10</span>
-                <span className="font-medium">120 µg/m³</span>
-              </div>
-              <div className="flex justify-between rounded-md border border-gray-100 p-2">
-                <span>NO2</span>
-                <span className="font-medium">45 ppb</span>
-              </div>
-              <div className="flex justify-between rounded-md border border-gray-100 p-2">
-                <span>O3</span>
-                <span className="font-medium">30 ppb</span>
+              <div className="rounded-md bg-gray-50 p-3">
+                <div className="text-xs text-gray-500">Pressure</div>
+                <div className="font-medium">
+                  {aqiData ? `${aqiData.pressure} hPa` : "..."}
+                </div>
               </div>
             </div>
 
@@ -120,7 +143,7 @@ export default function Dashboard() {
             <CardTitle>24-Hour Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <AQIChart />
+            <AQIChart aqiData={aqiData} loading={loading} mode="24h" />
           </CardContent>
         </Card>
 

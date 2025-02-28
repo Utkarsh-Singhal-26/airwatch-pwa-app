@@ -9,56 +9,109 @@ import {
   XAxis,
   YAxis,
 } from "@/components/ui/chart";
+import { AQI } from "@/interfaces/aqi";
 
 type Period = "hourly" | "daily" | "weekly";
 
 interface AQIDetailChartProps {
   period: Period;
+  loading?: boolean;
+  aqiData: AQI | null;
 }
 
-const hourlyData = [
-  { time: "00:00", aqi: 120 },
-  { time: "02:00", aqi: 115 },
-  { time: "04:00", aqi: 105 },
-  { time: "06:00", aqi: 95 },
-  { time: "08:00", aqi: 110 },
-  { time: "10:00", aqi: 130 },
-  { time: "12:00", aqi: 145 },
-  { time: "14:00", aqi: 155 },
-  { time: "16:00", aqi: 160 },
-  { time: "18:00", aqi: 150 },
-  { time: "20:00", aqi: 142 },
-  { time: "22:00", aqi: 135 },
-  { time: "Now", aqi: 142 },
-];
+export function AQIDetailChart({
+  period,
+  loading = false,
+  aqiData,
+}: AQIDetailChartProps) {
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    if (period === "hourly") {
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } else if (period === "daily") {
+      return date.toLocaleDateString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+    } else {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+  };
 
-const dailyData = [
-  { time: "Mon", aqi: 95 },
-  { time: "Tue", aqi: 110 },
-  { time: "Wed", aqi: 125 },
-  { time: "Thu", aqi: 142 },
-  { time: "Fri", aqi: 135 },
-  { time: "Sat", aqi: 120 },
-  { time: "Sun", aqi: 115 },
-];
+  const getTimeAgo = (value: number, unit: string) => {
+    if (value === 0) return unit === "hour" ? "Now" : "Today";
+    if (value === 1) return `1 ${unit} ago`;
+    return `${value} ${unit}s ago`;
+  };
 
-const weeklyData = [
-  { time: "Week 1", aqi: 105 },
-  { time: "Week 2", aqi: 115 },
-  { time: "Week 3", aqi: 130 },
-  { time: "Week 4", aqi: 142 },
-];
+  const getChartData = () => {
+    if (!aqiData) return [];
 
-export function AQIDetailChart({ period }: AQIDetailChartProps) {
-  const data =
-    period === "hourly"
-      ? hourlyData
-      : period === "daily"
-        ? dailyData
-        : weeklyData;
+    switch (period) {
+      case "hourly": {
+        const allData = [
+          { aqi: aqiData.aqi, timestamp: aqiData.lastUpdated },
+          ...(aqiData.hourlyHistory || []),
+        ];
+
+        return allData
+          .slice(0, 24)
+          .map((entry, index) => ({
+            time: entry.timestamp
+              ? formatTime(entry.timestamp)
+              : getTimeAgo(23 - index, "hour"),
+            aqi: entry.aqi,
+          }))
+          .reverse();
+      }
+
+      case "daily": {
+        const allData = [
+          { aqi: aqiData.aqi, timestamp: aqiData.lastUpdated },
+          ...(aqiData.dailyHistory || []),
+        ];
+
+        return allData
+          .slice(0, 7)
+          .map((entry, index) => ({
+            time: entry.timestamp
+              ? formatTime(entry.timestamp)
+              : getTimeAgo(6 - index, "day"),
+            aqi: entry.aqi,
+          }))
+          .reverse();
+      }
+
+      case "weekly": {
+        const allData = [
+          { aqi: aqiData.aqi, timestamp: aqiData.lastUpdated },
+          ...(aqiData.weeklyHistory || []),
+        ];
+
+        return allData
+          .slice(0, 4)
+          .map((entry, index) => ({
+            time: entry.timestamp
+              ? formatTime(entry.timestamp)
+              : `Week ${4 - index}`,
+            aqi: entry.aqi,
+          }))
+          .reverse();
+      }
+
+      default:
+        return [];
+    }
+  };
+
+  const data = getChartData();
 
   return (
-    <div className="h-64 w-full">
+    <div className={`h-64 w-full ${loading ? "opacity-50" : ""}`}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
@@ -70,8 +123,21 @@ export function AQIDetailChart({ period }: AQIDetailChartProps) {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="time" tick={{ fontSize: 12 }} />
-          <YAxis domain={[50, 200]} tick={{ fontSize: 12 }} />
+          <XAxis
+            dataKey="time"
+            tick={{ fontSize: 12 }}
+            interval={period === "hourly" ? 2 : 0}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis
+            domain={[
+              (dataMin: number) => Math.max(0, Math.floor(dataMin * 0.8)),
+              (dataMax: number) => Math.ceil(dataMax * 1.2),
+            ]}
+            tick={{ fontSize: 12 }}
+          />
           <Tooltip
             contentStyle={{
               backgroundColor: "white",
@@ -79,6 +145,7 @@ export function AQIDetailChart({ period }: AQIDetailChartProps) {
               borderRadius: "0.375rem",
               fontSize: "0.875rem",
             }}
+            formatter={(value: number) => [`AQI: ${value}`, ""]}
           />
           <Line
             type="monotone"
