@@ -34,7 +34,7 @@ import {
   User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Onboarding() {
   const router = useRouter();
@@ -43,6 +43,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [locationPermission, setLocationPermission] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const [user, setUser] = useState<UserProfile>({
     name: "",
@@ -53,6 +54,59 @@ export default function Onboarding() {
     outdoorActivities: [],
     commute: "",
   });
+
+  const requestLocationPermission = async () => {
+    try {
+      const result = await navigator.permissions.query({ name: "geolocation" });
+
+      if (result.state === "granted") {
+        setLocationPermission(true);
+        localStorage.setItem("locationPermission", "granted");
+        setLocationError(null);
+      } else if (result.state === "prompt") {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setLocationPermission(true);
+            localStorage.setItem("locationPermission", "granted");
+            setLocationError(null);
+          },
+          (error) => {
+            console.error("Location permission denied:", error);
+            setLocationPermission(false);
+            localStorage.setItem("locationPermission", "denied");
+            setLocationError(
+              "Please enable location access to use the map features."
+            );
+          }
+        );
+      } else {
+        setLocationPermission(false);
+        localStorage.setItem("locationPermission", "denied");
+        setLocationError(
+          "Location access is blocked. Please enable it in your browser settings."
+        );
+      }
+    } catch (error) {
+      console.error("Error requesting location permission:", error);
+      setLocationError("Unable to request location permission.");
+    }
+  };
+
+  const handleLocationToggle = (checked: boolean) => {
+    if (checked) {
+      requestLocationPermission();
+    } else {
+      setLocationPermission(false);
+      localStorage.setItem("locationPermission", "denied");
+    }
+  };
+
+  useEffect(() => {
+    const savedPermission = localStorage.getItem("locationPermission");
+    if (savedPermission === "granted") {
+      setLocationPermission(true);
+    }
+  }, []);
 
   const handleHealthConditionChange = (condition: string) => {
     setUser((prev) => ({
@@ -109,7 +163,7 @@ export default function Onboarding() {
             {step === 5 && "For AI-powered personalized recommendations"}
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {step === 1 && (
             <div className="space-y-4">
@@ -147,22 +201,42 @@ export default function Onboarding() {
 
           {step === 3 && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-5 w-5" />
-                  <Label htmlFor="location">Location Access</Label>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-5 w-5" />
+                    <div className="space-y-1">
+                      <Label htmlFor="location">Location Access</Label>
+                      <p className="text-sm text-gray-500">
+                        Required for local air quality data
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="location"
+                    checked={locationPermission}
+                    onCheckedChange={handleLocationToggle}
+                  />
                 </div>
-                <Switch
-                  id="location"
-                  checked={locationPermission}
-                  onCheckedChange={setLocationPermission}
-                />
+                {locationError && (
+                  <p className="text-sm text-red-500">{locationError}</p>
+                )}
+                {locationPermission && (
+                  <p className="text-sm text-green-600">
+                    Location access granted!
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Bell className="h-5 w-5" />
-                  <Label htmlFor="notifications">Notifications</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="notifications">Notifications</Label>
+                    <p className="text-sm text-gray-500">
+                      Get air quality alerts
+                    </p>
+                  </div>
                 </div>
                 <Switch
                   id="notifications"
@@ -359,6 +433,7 @@ export default function Onboarding() {
           <Button
             onClick={nextStep}
             className="bg-black text-white hover:bg-gray-800"
+            disabled={step === 3 && !locationPermission}
           >
             {step < 5 ? "Next" : "Get Started"}{" "}
             <ArrowRight className="ml-2 h-4 w-4" />
