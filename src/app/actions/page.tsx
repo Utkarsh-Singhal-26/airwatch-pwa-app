@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/hooks/useSession";
-import { CheckCircle2, Home, Leaf, Map, Settings } from "lucide-react";
-import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const formatRecommendation = (recommendation: string): string => {
@@ -106,178 +105,130 @@ export default function Actions() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto max-w-md p-4">
-        <header className="mb-6 flex flex-col items-start justify-between">
-          <h1 className="text-2xl font-bold">Climate Actions</h1>
-          <div className="text-sm text-gray-600">
-            Welcome, {session?.user?.name}
-          </div>
-        </header>
+    <div className="container mx-auto max-w-md p-4">
+      <header className="mb-6 flex flex-col items-start justify-between">
+        <h1 className="text-2xl font-bold">Climate Actions</h1>
+        <div className="text-sm text-gray-600">
+          Welcome, {session?.user?.name}
+        </div>
+      </header>
 
-        <Card className="mb-6 border-gray-200">
-          <CardHeader>
-            <CardTitle>Current Air Quality</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-20" />
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    AQI: {session.aqiData?.value ?? "N/A"}
-                  </span>
-                  <Badge
-                    variant={
-                      session.aqiData?.value && session.aqiData.value > 100
-                        ? "destructive"
-                        : "default"
-                    }
-                  >
-                    {session.aqiData?.value && session.aqiData.value > 100
-                      ? "Poor"
-                      : "Good"}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Location: {session.aqiData?.location.name ?? "Unknown"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Last updated:{" "}
-                  {session.aqiData?.lastUpdated
-                    ? new Date(session.aqiData.lastUpdated).toLocaleString()
-                    : "Never"}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateAQIData()}
-                  className="mt-2"
+      <Card className="mb-6 border-gray-200">
+        <CardHeader>
+          <CardTitle>Current Air Quality</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-20" />
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold">
+                  AQI: {session.aqiData?.value ?? "N/A"}
+                </span>
+                <Badge
+                  variant={
+                    session.aqiData?.value && session.aqiData.value > 100
+                      ? "destructive"
+                      : "default"
+                  }
                 >
-                  Refresh AQI Data
-                </Button>
+                  {session.aqiData?.value && session.aqiData.value > 100
+                    ? "Poor"
+                    : "Good"}
+                </Badge>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="text-sm text-muted-foreground">
+                Location: {session.aqiData?.location.name ?? "Unknown"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Last updated:{" "}
+                {session.aqiData?.lastUpdated
+                  ? new Date(session.aqiData.lastUpdated).toLocaleString()
+                  : "Never"}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updateAQIData()}
+                className="mt-2"
+              >
+                Refresh AQI Data
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        <Card className="mb-6 border-gray-200">
-          <CardHeader>
-            <CardTitle>Daily Challenge</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-20" />
-            ) : dailyChallenge ? (
-              <>
-                <div className="mb-4 rounded-md bg-gray-50 p-4">
-                  <div className="mb-2 flex items-center">
-                    <span className="font-medium">
-                      {dailyChallenge.challenge}
-                    </span>
-                  </div>
-                  <p className="mb-3 text-sm text-gray-600">
-                    Based on your commute preferences and today&apos;s AQI of{" "}
-                    {session.aqiData?.value}, taking the metro instead of
-                    cycling can reduce your exposure to harmful pollutants by up
-                    to 60%. This also reduces your carbon footprint by 3.2 kg
-                    CO₂ today.
+      <Card className="mb-6 border-gray-200">
+        <CardHeader>
+          <CardTitle>Daily Challenge</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-20" />
+          ) : dailyChallenge ? (
+            <>
+              <div className="mb-4 rounded-md bg-gray-50 p-4">
+                <div className="mb-2 flex items-center">
+                  <span className="font-medium">
+                    {dailyChallenge.challenge}
+                  </span>
+                </div>
+                <p className="mb-3 text-sm text-gray-600">
+                  Based on your commute preferences and today&apos;s AQI of{" "}
+                  {session.aqiData?.value}, taking the metro instead of cycling
+                  can reduce your exposure to harmful pollutants by up to 60%.
+                  This also reduces your carbon footprint by 3.2 kg CO₂ today.
+                </p>
+              </div>
+              <Button
+                variant={dailyChallenge.completed ? "outline" : "default"}
+                className="w-full"
+                onClick={handleDailyChallengeCompletion}
+                disabled={dailyChallenge.completed}
+              >
+                {dailyChallenge.completed
+                  ? "Completed for today"
+                  : "Mark as Complete"}
+              </Button>
+            </>
+          ) : (
+            <p>No challenge available</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6 border-gray-200">
+        <CardHeader>
+          <CardTitle>AI Personalized Recommendations</CardTitle>
+          <CardDescription>
+            Based on your health profile and activities
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <Skeleton className="h-20" />
+          ) : session.recommendations?.items.length ? (
+            session.recommendations.items.map((recommendation, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 rounded-md bg-gray-50 p-3 mb-3"
+              >
+                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <div>
+                  <div className="font-medium">Recommendation {index + 1}</div>
+                  <p className="text-sm text-gray-600">
+                    {formatRecommendation(recommendation)}
                   </p>
                 </div>
-                <Button
-                  variant={dailyChallenge.completed ? "outline" : "default"}
-                  className="w-full"
-                  onClick={handleDailyChallengeCompletion}
-                  disabled={dailyChallenge.completed}
-                >
-                  {dailyChallenge.completed
-                    ? "Completed for today"
-                    : "Mark as Complete"}
-                </Button>
-              </>
-            ) : (
-              <p>No challenge available</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6 border-gray-200">
-          <CardHeader>
-            <CardTitle>AI Personalized Recommendations</CardTitle>
-            <CardDescription>
-              Based on your health profile and activities
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-20" />
-            ) : session.recommendations?.items.length ? (
-              session.recommendations.items.map((recommendation, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 rounded-md bg-gray-50 p-3 mb-3"
-                >
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" />
-                  <div>
-                    <div className="font-medium">
-                      Recommendation {index + 1}
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {formatRecommendation(recommendation)}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p>No recommendations available</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
-        <div className="container mx-auto max-w-md">
-          <div className="flex justify-around py-2">
-            <Link href="/dashboard">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Home className="h-5 w-5" />
-                <span className="text-xs">Home</span>
-              </Button>
-            </Link>
-            <Link href="/map">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Map className="h-5 w-5" />
-                <span className="text-xs">Map</span>
-              </Button>
-            </Link>
-            <Link href="/actions">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Leaf className="h-5 w-5 text-black" />
-                <span className="text-xs font-medium">Actions</span>
-              </Button>
-            </Link>
-            <Link href="/settings">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Settings className="h-5 w-5" />
-                <span className="text-xs">Settings</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+              </div>
+            ))
+          ) : (
+            <p>No recommendations available</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

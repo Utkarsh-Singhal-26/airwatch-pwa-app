@@ -5,19 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSession } from "@/hooks/useSession";
-import {
-  Bell,
-  ChevronRight,
-  Home,
-  Info,
-  Leaf,
-  LogOut,
-  Map,
-  MapPin,
-  Settings,
-  User,
-} from "lucide-react";
-import Link from "next/link";
+import { Bell, ChevronRight, Info, LogOut, MapPin, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -100,181 +88,134 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto max-w-md p-4">
-        <header className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Settings</h1>
-        </header>
+    <div className="container mx-auto max-w-md p-4">
+      <header className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Settings</h1>
+      </header>
 
-        <Card className="mb-6 border-gray-200">
-          <CardHeader className="pb-2">
-            <CardTitle>Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Bell className="h-5 w-5" />
-                <Label htmlFor="push-notifications">Push Notifications</Label>
-              </div>
-              <Switch
-                id="push-notifications"
-                checked={settings.pushNotifications}
-                onCheckedChange={(checked) =>
-                  updateSettings("pushNotifications", checked)
-                }
-              />
+      <Card className="mb-6 border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5" />
+              <Label htmlFor="push-notifications">Push Notifications</Label>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Bell className="h-5 w-5" />
-                <Label htmlFor="daily-forecast">Daily Forecast</Label>
-              </div>
-              <Switch
-                id="daily-forecast"
-                checked={settings.dailyForecast}
-                onCheckedChange={(checked) =>
-                  updateSettings("dailyForecast", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Bell className="h-5 w-5" />
-                <Label htmlFor="aqi-alerts">AQI Alerts</Label>
-              </div>
-              <Switch
-                id="aqi-alerts"
-                checked={settings.aqiAlerts}
-                onCheckedChange={(checked) =>
-                  updateSettings("aqiAlerts", checked)
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6 border-gray-200">
-          <CardHeader className="pb-2">
-            <CardTitle>Location Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-5 w-5" />
-                  <div className="space-y-1">
-                    <Label htmlFor="location-access">Location Access</Label>
-                    <p className="text-sm text-gray-500">
-                      Required for local air quality data
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="location-access"
-                  checked={settings.locationAccess}
-                  onCheckedChange={handleLocationToggle}
-                />
-              </div>
-              {locationError && (
-                <p className="text-sm text-red-500">{locationError}</p>
-              )}
-              {settings.locationAccess && (
-                <p className="text-sm text-green-600">
-                  Location access granted!
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6 border-gray-200">
-          <CardHeader className="pb-2">
-            <CardTitle>Account</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              variant="outline"
-              className="flex w-full items-center justify-between border-gray-200"
-              onClick={() => router.push("/profile")}
-            >
-              <div className="flex items-center">
-                <User className="mr-2 h-5 w-5" />
-                <span>Profile</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="flex w-full items-center justify-between border-gray-200"
-              onClick={() => router.push("/about")}
-            >
-              <div className="flex items-center">
-                <Info className="mr-2 h-5 w-5" />
-                <span>About</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="flex w-full items-center justify-between border-gray-200"
-              onClick={handleSignOut}
-            >
-              <div className="flex items-center">
-                <LogOut className="mr-2 h-5 w-5" />
-                <span>Sign Out</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
-        <div className="container mx-auto max-w-md">
-          <div className="flex justify-around py-2">
-            <Link href="/dashboard">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Home className="h-5 w-5" />
-                <span className="text-xs">Home</span>
-              </Button>
-            </Link>
-            <Link href="/map">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Map className="h-5 w-5" />
-                <span className="text-xs">Map</span>
-              </Button>
-            </Link>
-            <Link href="/actions">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Leaf className="h-5 w-5" />
-                <span className="text-xs">Actions</span>
-              </Button>
-            </Link>
-            <Link href="/settings">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Settings className="h-5 w-5 text-black" />
-                <span className="text-xs font-medium">Settings</span>
-              </Button>
-            </Link>
+            <Switch
+              id="push-notifications"
+              checked={settings.pushNotifications}
+              onCheckedChange={(checked) =>
+                updateSettings("pushNotifications", checked)
+              }
+            />
           </div>
-        </div>
-      </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5" />
+              <Label htmlFor="daily-forecast">Daily Forecast</Label>
+            </div>
+            <Switch
+              id="daily-forecast"
+              checked={settings.dailyForecast}
+              onCheckedChange={(checked) =>
+                updateSettings("dailyForecast", checked)
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5" />
+              <Label htmlFor="aqi-alerts">AQI Alerts</Label>
+            </div>
+            <Switch
+              id="aqi-alerts"
+              checked={settings.aqiAlerts}
+              onCheckedChange={(checked) =>
+                updateSettings("aqiAlerts", checked)
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6 border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle>Location Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5" />
+                <div className="space-y-1">
+                  <Label htmlFor="location-access">Location Access</Label>
+                  <p className="text-sm text-gray-500">
+                    Required for local air quality data
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="location-access"
+                checked={settings.locationAccess}
+                onCheckedChange={handleLocationToggle}
+              />
+            </div>
+            {locationError && (
+              <p className="text-sm text-red-500">{locationError}</p>
+            )}
+            {settings.locationAccess && (
+              <p className="text-sm text-green-600">Location access granted!</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6 border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle>Account</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button
+            variant="outline"
+            className="flex w-full items-center justify-between border-gray-200"
+            onClick={() => router.push("/profile")}
+          >
+            <div className="flex items-center">
+              <User className="mr-2 h-5 w-5" />
+              <span>Profile</span>
+            </div>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            className="flex w-full items-center justify-between border-gray-200"
+            onClick={() => router.push("/about")}
+          >
+            <div className="flex items-center">
+              <Info className="mr-2 h-5 w-5" />
+              <span>About</span>
+            </div>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            className="flex w-full items-center justify-between border-gray-200"
+            onClick={handleSignOut}
+          >
+            <div className="flex items-center">
+              <LogOut className="mr-2 h-5 w-5" />
+              <span>Sign Out</span>
+            </div>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

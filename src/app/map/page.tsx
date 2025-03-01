@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Location } from "@/interfaces/map";
 import { getAQIColor, getAQIData, getAQILabel } from "@/lib/map-data";
 import { useLoadScript } from "@react-google-maps/api";
-import { Home, Leaf, Map, Search, Settings, X } from "lucide-react";
-import Link from "next/link";
+import { Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function MapView() {
@@ -136,151 +135,104 @@ export default function MapView() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto max-w-md p-4">
-        <header className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Air Quality Map</h1>
-        </header>
+    <div className="container mx-auto max-w-md p-4">
+      <header className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Air Quality Map</h1>
+      </header>
 
-        <div className="mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder="Search for any location or AQI city..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-          {isLoadingAQI && (
-            <p className="mt-2 text-sm text-blue-500">
-              Loading air quality data...
-            </p>
-          )}
-        </div>
-
-        <div className="relative mb-6 h-[500px] overflow-hidden rounded-lg border border-gray-200">
-          <GoogleMapComponent
-            searchedLocations={searchedLocations}
-            onMapClick={handleMapMarkerClick}
+      <div className="mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            ref={inputRef}
+            type="text"
+            placeholder="Search for any location or AQI city..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+        {isLoadingAQI && (
+          <p className="mt-2 text-sm text-blue-500">
+            Loading air quality data...
+          </p>
+        )}
+      </div>
 
-          <div className="absolute bottom-4 right-4 rounded-md bg-white p-2 shadow-sm">
-            <div className="mb-1 text-xs font-medium">AQI Legend</div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <div className="flex items-center">
-                <div className="mr-1 h-3 w-3 rounded-full bg-gray-300"></div>
-                <span>Good (0-50)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-1 h-3 w-3 rounded-full bg-gray-500"></div>
-                <span>Moderate (51-100)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-1 h-3 w-3 rounded-full bg-gray-700"></div>
-                <span>Unhealthy (101-150)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-1 h-3 w-3 rounded-full bg-black"></div>
-                <span>Very Unhealthy (151+)</span>
-              </div>
+      <div className="relative mb-6 h-[500px] overflow-hidden rounded-lg border border-gray-200">
+        <GoogleMapComponent
+          searchedLocations={searchedLocations}
+          onMapClick={handleMapMarkerClick}
+        />
+
+        <div className="absolute bottom-4 right-4 rounded-md bg-white p-2 shadow-sm">
+          <div className="mb-1 text-xs font-medium">AQI Legend</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <div className="flex items-center">
+              <div className="mr-1 h-3 w-3 rounded-full bg-gray-300"></div>
+              <span>Good (0-50)</span>
+            </div>
+            <div className="flex items-center">
+              <div className="mr-1 h-3 w-3 rounded-full bg-gray-500"></div>
+              <span>Moderate (51-100)</span>
+            </div>
+            <div className="flex items-center">
+              <div className="mr-1 h-3 w-3 rounded-full bg-gray-700"></div>
+              <span>Unhealthy (101-150)</span>
+            </div>
+            <div className="flex items-center">
+              <div className="mr-1 h-3 w-3 rounded-full bg-black"></div>
+              <span>Very Unhealthy (151+)</span>
             </div>
           </div>
         </div>
-
-        <div className="space-y-3">
-          {sortedLocations.map((location) => (
-            <Card
-              key={`${location.name}-${location.position.lat}-${location.position.lng}`}
-              className="border-gray-200"
-            >
-              <CardContent className="flex items-center justify-between p-3">
-                <div className="flex-1 min-w-0 mr-4">
-                  <div className="font-medium truncate">{location.name}</div>
-                  {location.address && (
-                    <div className="text-sm text-gray-500 truncate">
-                      {location.address}
-                    </div>
-                  )}
-                  <div className="text-xs text-gray-400">
-                    {location.position.lat.toFixed(4)},{" "}
-                    {location.position.lng.toFixed(4)}
-                  </div>
-                </div>
-                <div className="flex items-center shrink-0">
-                  {location.aqi && (
-                    <>
-                      <div className="mr-2 text-xl font-bold">
-                        {location.aqi}
-                      </div>
-                      <div
-                        className={`rounded-full px-2 py-1 text-xs ${getAQIColor(
-                          location.aqi
-                        )}`}
-                      >
-                        {getAQILabel(location.aqi)}
-                      </div>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-2"
-                    onClick={() => removeLocation(location)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white">
-        <div className="container mx-auto max-w-md">
-          <div className="flex justify-around py-2">
-            <Link href="/dashboard">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Home className="h-5 w-5" />
-                <span className="text-xs">Home</span>
-              </Button>
-            </Link>
-            <Link href="/map">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Map className="h-5 w-5 text-black" />
-                <span className="text-xs font-medium">Map</span>
-              </Button>
-            </Link>
-            <Link href="/actions">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Leaf className="h-5 w-5" />
-                <span className="text-xs">Actions</span>
-              </Button>
-            </Link>
-            <Link href="/settings">
-              <Button
-                variant="ghost"
-                className="flex flex-col items-center px-4"
-              >
-                <Settings className="h-5 w-5" />
-                <span className="text-xs">Settings</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
+      <div className="space-y-3">
+        {sortedLocations.map((location) => (
+          <Card
+            key={`${location.name}-${location.position.lat}-${location.position.lng}`}
+            className="border-gray-200"
+          >
+            <CardContent className="flex items-center justify-between p-3">
+              <div className="flex-1 min-w-0 mr-4">
+                <div className="font-medium truncate">{location.name}</div>
+                {location.address && (
+                  <div className="text-sm text-gray-500 truncate">
+                    {location.address}
+                  </div>
+                )}
+                <div className="text-xs text-gray-400">
+                  {location.position.lat.toFixed(4)},{" "}
+                  {location.position.lng.toFixed(4)}
+                </div>
+              </div>
+              <div className="flex items-center shrink-0">
+                {location.aqi && (
+                  <>
+                    <div className="mr-2 text-xl font-bold">{location.aqi}</div>
+                    <div
+                      className={`rounded-full px-2 py-1 text-xs ${getAQIColor(
+                        location.aqi
+                      )}`}
+                    >
+                      {getAQILabel(location.aqi)}
+                    </div>
+                  </>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-2"
+                  onClick={() => removeLocation(location)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

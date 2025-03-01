@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { ThemeProvider } from "next-themes";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import Provider from "./provider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -25,13 +25,7 @@ export default function RootLayout({
       <body
         className={`${outfit.className} w-screen min-h-screen m-0 p-0 overflow-x-hidden`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <Provider>{children}</Provider>
       </body>
     </html>
   );
