@@ -133,7 +133,7 @@ export function useSession() {
         const [challenge, recommendations] = await Promise.all([
           shouldUpdateChallenge ? aiAgent.getDailyChallenge(currentAQI) : null,
           shouldUpdateRecommendations
-            ? aiAgent.getPersonlizedRecommendations(currentAQI)
+            ? aiAgent.getPersonalizedRecommendations(currentAQI)
             : null,
         ]);
 

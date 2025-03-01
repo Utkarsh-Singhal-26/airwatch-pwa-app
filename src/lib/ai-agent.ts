@@ -38,7 +38,7 @@ export class AIAgent {
     }
   }
 
-  async getPersonlizedRecommendations(currentAQI: number): Promise<string[]> {
+  async getPersonalizedRecommendations(currentAQI: number): Promise<string[]> {
     try {
       const { recommendations } = await this.fetchFromAI("recommendations", {
         currentAQI,
