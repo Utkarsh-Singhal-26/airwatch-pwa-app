@@ -193,4 +193,4 @@ const fetchAQIData = async (
   setLoading?.(false);
 };
 
-export { fetchAQIData };
+export { fetchAQIData, getCurrentLocation, getLocationName };

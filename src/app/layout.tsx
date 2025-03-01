@@ -1,4 +1,3 @@
-import { UserProvider } from "@/context/user";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Outfit } from "next/font/google";
@@ -31,7 +30,7 @@ export default function RootLayout({
           defaultTheme="light"
           disableTransitionOnChange
         >
-          <UserProvider>{children}</UserProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

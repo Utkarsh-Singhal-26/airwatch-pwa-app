@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useUser } from "@/context/user";
+import { useSession } from "@/hooks/useSession";
 import type { User as UserProfile } from "@/interfaces/user";
 import {
   Activity,
@@ -38,7 +38,7 @@ import { useEffect, useState } from "react";
 
 export default function Onboarding() {
   const router = useRouter();
-  const { updateUser } = useUser();
+  const { session, updateSession } = useSession();
 
   const [step, setStep] = useState(1);
   const [locationPermission, setLocationPermission] = useState(false);
@@ -61,19 +61,16 @@ export default function Onboarding() {
 
       if (result.state === "granted") {
         setLocationPermission(true);
-        localStorage.setItem("locationPermission", "granted");
         setLocationError(null);
       } else if (result.state === "prompt") {
         navigator.geolocation.getCurrentPosition(
           () => {
             setLocationPermission(true);
-            localStorage.setItem("locationPermission", "granted");
             setLocationError(null);
           },
           (error) => {
             console.error("Location permission denied:", error);
             setLocationPermission(false);
-            localStorage.setItem("locationPermission", "denied");
             setLocationError(
               "Please enable location access to use the map features."
             );
@@ -81,7 +78,6 @@ export default function Onboarding() {
         );
       } else {
         setLocationPermission(false);
-        localStorage.setItem("locationPermission", "denied");
         setLocationError(
           "Location access is blocked. Please enable it in your browser settings."
         );
@@ -97,7 +93,6 @@ export default function Onboarding() {
       requestLocationPermission();
     } else {
       setLocationPermission(false);
-      localStorage.setItem("locationPermission", "denied");
     }
   };
 
@@ -126,14 +121,24 @@ export default function Onboarding() {
     }));
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step < 5) {
       setStep(step + 1);
     } else {
-      if (user) {
-        updateUser(user);
-        router.push("/dashboard");
-      }
+      await updateSession({
+        ...session,
+        user,
+        settings: {
+          ...session?.settings,
+          locationAccess: locationPermission,
+          pushNotifications: notificationPermission,
+          dailyForecast: session?.settings?.dailyForecast ?? false,
+          aqiAlerts: session?.settings?.aqiAlerts ?? false,
+          aqiThreshold: session?.settings?.aqiThreshold ?? 100,
+          temperatureUnit: session?.settings?.temperatureUnit ?? "celsius",
+        },
+      });
+      router.push("/dashboard");
     }
   };
 

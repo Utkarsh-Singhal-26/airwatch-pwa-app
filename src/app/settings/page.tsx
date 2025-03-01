@@ -3,9 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useSession } from "@/hooks/useSession";
 import {
   Bell,
   ChevronRight,
@@ -19,8 +18,87 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { session, updateSession, clearSession } = useSession();
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const [settings, setSettings] = useState({
+    pushNotifications: false,
+    dailyForecast: false,
+    aqiAlerts: false,
+    aqiThreshold: 100,
+    locationAccess: false,
+    temperatureUnit: "celsius",
+  });
+
+  useEffect(() => {
+    if (session?.settings) {
+      setSettings(session.settings);
+    }
+  }, [session]);
+
+  const requestLocationPermission = async () => {
+    try {
+      const result = await navigator.permissions.query({ name: "geolocation" });
+
+      if (result.state === "granted") {
+        updateSettings("locationAccess", true);
+        setLocationError(null);
+      } else if (result.state === "prompt") {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            updateSettings("locationAccess", true);
+            setLocationError(null);
+          },
+          (error) => {
+            console.error("Location permission denied:", error);
+            updateSettings("locationAccess", false);
+            setLocationError(
+              "Please enable location access to use the map features."
+            );
+          }
+        );
+      } else {
+        updateSettings("locationAccess", false);
+        setLocationError(
+          "Location access is blocked. Please enable it in your browser settings."
+        );
+      }
+    } catch (error) {
+      console.error("Error requesting location permission:", error);
+      setLocationError("Unable to request location permission.");
+    }
+  };
+
+  const handleLocationToggle = (checked: boolean) => {
+    if (checked) {
+      requestLocationPermission();
+    } else {
+      updateSettings("locationAccess", false);
+    }
+  };
+
+  const updateSettings = async (
+    key: keyof typeof settings,
+    value: boolean | number | string
+  ) => {
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    await updateSession({
+      ...session,
+      settings: newSettings,
+    });
+  };
+
+  const handleSignOut = async () => {
+    await clearSession();
+    router.push("/onboarding");
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto max-w-md p-4">
@@ -38,7 +116,13 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 <Label htmlFor="push-notifications">Push Notifications</Label>
               </div>
-              <Switch id="push-notifications" defaultChecked />
+              <Switch
+                id="push-notifications"
+                checked={settings.pushNotifications}
+                onCheckedChange={(checked) =>
+                  updateSettings("pushNotifications", checked)
+                }
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -46,7 +130,13 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 <Label htmlFor="daily-forecast">Daily Forecast</Label>
               </div>
-              <Switch id="daily-forecast" defaultChecked />
+              <Switch
+                id="daily-forecast"
+                checked={settings.dailyForecast}
+                onCheckedChange={(checked) =>
+                  updateSettings("dailyForecast", checked)
+                }
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -54,24 +144,13 @@ export default function SettingsPage() {
                 <Bell className="h-5 w-5" />
                 <Label htmlFor="aqi-alerts">AQI Alerts</Label>
               </div>
-              <Switch id="aqi-alerts" defaultChecked />
-            </div>
-
-            <div className="space-y-2">
-              <Label>AQI Alert Threshold: 100</Label>
-              <Slider
-                defaultValue={[100]}
-                min={50}
-                max={200}
-                step={1}
-                onValueChange={(value) => console.log(value)}
+              <Switch
+                id="aqi-alerts"
+                checked={settings.aqiAlerts}
+                onCheckedChange={(checked) =>
+                  updateSettings("aqiAlerts", checked)
+                }
               />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>50</span>
-                <span>100</span>
-                <span>150</span>
-                <span>200</span>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -81,44 +160,31 @@ export default function SettingsPage() {
             <CardTitle>Location Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-5 w-5" />
-                <Label htmlFor="location-access">Location Access</Label>
-              </div>
-              <Switch id="location-access" defaultChecked />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Temperature Unit</Label>
-              <RadioGroup defaultValue="celsius">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="celsius" id="celsius" />
-                  <Label htmlFor="celsius">Celsius (°C)</Label>
+                  <MapPin className="h-5 w-5" />
+                  <div className="space-y-1">
+                    <Label htmlFor="location-access">Location Access</Label>
+                    <p className="text-sm text-gray-500">
+                      Required for local air quality data
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="fahrenheit" id="fahrenheit" />
-                  <Label htmlFor="fahrenheit">Fahrenheit (°F)</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="rounded-md bg-gray-50 p-3">
-              <div className="font-medium">Saved Locations</div>
-              <div className="mt-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span>New Delhi (Current)</span>
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Mumbai</span>
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Bangalore</span>
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
-                </div>
+                <Switch
+                  id="location-access"
+                  checked={settings.locationAccess}
+                  onCheckedChange={handleLocationToggle}
+                />
               </div>
+              {locationError && (
+                <p className="text-sm text-red-500">{locationError}</p>
+              )}
+              {settings.locationAccess && (
+                <p className="text-sm text-green-600">
+                  Location access granted!
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -131,6 +197,7 @@ export default function SettingsPage() {
             <Button
               variant="outline"
               className="flex w-full items-center justify-between border-gray-200"
+              onClick={() => router.push("/profile")}
             >
               <div className="flex items-center">
                 <User className="mr-2 h-5 w-5" />
@@ -142,6 +209,7 @@ export default function SettingsPage() {
             <Button
               variant="outline"
               className="flex w-full items-center justify-between border-gray-200"
+              onClick={() => router.push("/about")}
             >
               <div className="flex items-center">
                 <Info className="mr-2 h-5 w-5" />
@@ -153,6 +221,7 @@ export default function SettingsPage() {
             <Button
               variant="outline"
               className="flex w-full items-center justify-between border-gray-200"
+              onClick={handleSignOut}
             >
               <div className="flex items-center">
                 <LogOut className="mr-2 h-5 w-5" />
