@@ -22,8 +22,8 @@ async function getSession(): Promise<UserSession | Error> {
     return currentSessionCookie?.value
       ? JSON.parse(currentSessionCookie.value)
       : new Error("No session found");
-  } catch (error) {
-    return new Error("Failed to get session", { cause: error });
+  } catch {
+    return new Error("Failed to get session");
   }
 }
 
@@ -73,8 +73,8 @@ async function createSession(
     });
 
     return await getSession();
-  } catch (error) {
-    return new Error("Failed to create session", { cause: error });
+  } catch {
+    return new Error("Failed to create session");
   }
 }
 
@@ -82,8 +82,8 @@ async function deleteSession(): Promise<void | Error> {
   try {
     const cookieStore = await cookies();
     cookieStore.delete(SESSION_KEY as string);
-  } catch (error) {
-    return new Error("Failed to delete session", { cause: error });
+  } catch {
+    return new Error("Failed to delete session");
   }
 }
 

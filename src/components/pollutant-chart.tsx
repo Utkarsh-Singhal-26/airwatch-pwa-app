@@ -65,7 +65,7 @@ export function PollutantChart({
               borderRadius: "0.375rem",
               fontSize: "0.875rem",
             }}
-            formatter={(value: number, name, props) => {
+            formatter={(value: number, _, props) => {
               const item = data.find((d) => d.name === props.payload.name);
               const percentage = item
                 ? Math.round((item.value / item.limit) * 100)

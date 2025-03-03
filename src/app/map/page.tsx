@@ -4,6 +4,7 @@ import GoogleMapComponent from "@/components/google-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useSession } from "@/hooks/useSession";
 import { Location } from "@/interfaces/map";
 import { getAQIColor, getAQIData, getAQILabel } from "@/lib/map-data";
 import { useLoadScript } from "@react-google-maps/api";
@@ -12,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 
 export default function MapView() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const { session } = useSession();
 
   const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -25,40 +27,14 @@ export default function MapView() {
     libraries: ["places"],
   });
 
-  const fetchAQIData = async (location: Location) => {
-    const aqi = await getAQIData(location.position.lat, location.position.lng);
-    if (aqi !== null) {
-      setSearchedLocations((prev) =>
-        prev.map((loc) =>
-          loc.name === location.name &&
-          loc.position.lat === location.position.lat &&
-          loc.position.lng === location.position.lng
-            ? { ...loc, aqi }
-            : loc
-        )
-      );
-    }
-  };
+  const [isLocationAccessGranted, setIsLocationAccessGranted] =
+    useState<boolean>(false);
 
-  const fetchNearbyStations = async (lat: number, lng: number) => {
-    setIsLoadingAQI(true);
-    try {
-      const aqi = await getAQIData(lat, lng);
-      if (aqi !== null) {
-        setSearchedLocations((prev) => {
-          const locations = [...prev];
-          const lastLocation = locations[locations.length - 1];
-          if (lastLocation) {
-            lastLocation.aqi = aqi;
-          }
-          return locations;
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching AQI data:", error);
+  useEffect(() => {
+    if (session?.settings.locationAccess) {
+      setIsLocationAccessGranted(true);
     }
-    setIsLoadingAQI(false);
-  };
+  }, [session?.settings.locationAccess]);
 
   useEffect(() => {
     if (isLoaded && inputRef.current && !searchBoxRef.current) {
@@ -104,6 +80,50 @@ export default function MapView() {
     const intervalId = setInterval(refreshAQI, 5 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [searchedLocations]);
+
+  if (!isLocationAccessGranted) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center">
+        <p>Location access not granted</p>
+        <p>Please enable location access in the settings</p>
+      </div>
+    );
+  }
+
+  const fetchAQIData = async (location: Location) => {
+    const aqi = await getAQIData(location.position.lat, location.position.lng);
+    if (aqi !== null) {
+      setSearchedLocations((prev) =>
+        prev.map((loc) =>
+          loc.name === location.name &&
+          loc.position.lat === location.position.lat &&
+          loc.position.lng === location.position.lng
+            ? { ...loc, aqi }
+            : loc
+        )
+      );
+    }
+  };
+
+  const fetchNearbyStations = async (lat: number, lng: number) => {
+    setIsLoadingAQI(true);
+    try {
+      const aqi = await getAQIData(lat, lng);
+      if (aqi !== null) {
+        setSearchedLocations((prev) => {
+          const locations = [...prev];
+          const lastLocation = locations[locations.length - 1];
+          if (lastLocation) {
+            lastLocation.aqi = aqi;
+          }
+          return locations;
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching AQI data:", error);
+    }
+    setIsLoadingAQI(false);
+  };
 
   const handleMapMarkerClick = (location: Location) => {
     setSearchedLocations((prev) =>

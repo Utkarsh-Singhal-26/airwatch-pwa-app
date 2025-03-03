@@ -39,6 +39,15 @@ export default function Actions() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [isLocationAccessGranted, setIsLocationAccessGranted] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    if (session?.settings.locationAccess) {
+      setIsLocationAccessGranted(true);
+    }
+  }, [session?.settings.locationAccess]);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!session?.user) {
@@ -65,6 +74,15 @@ export default function Actions() {
 
     fetchData();
   }, [session?.user, getDailyChallenge, updateAQIData]);
+
+  if (!isLocationAccessGranted) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center">
+        <p>Location access not granted</p>
+        <p>Please enable location access in the settings</p>
+      </div>
+    );
+  }
 
   const handleDailyChallengeCompletion = async () => {
     if (!session || !dailyChallenge) return;

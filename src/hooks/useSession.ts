@@ -34,7 +34,7 @@ export function useSession() {
       return response;
     } catch (error) {
       console.error("Error updating session:", error);
-      throw new Error("Failed to update session", { cause: error });
+      throw new Error("Failed to update session");
     }
   }, []);
 
