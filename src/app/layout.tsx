@@ -1,3 +1,4 @@
+import ServiceWorker from "@/lib/service-worker";
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
@@ -26,6 +27,8 @@ export default function RootLayout({
         className={`${outfit.className} w-screen min-h-screen m-0 p-0 overflow-x-hidden`}
       >
         <Provider>{children}</Provider>
+
+        <ServiceWorker />
       </body>
     </html>
   );
