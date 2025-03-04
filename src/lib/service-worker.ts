@@ -7,7 +7,7 @@ export default function ServiceWorker() {
     if ("serviceWorker" in navigator) {
       if (navigator.serviceWorker) {
         navigator.serviceWorker
-          .register("/service-worker.js")
+          .register("/sw.js")
           .then((registration) => {
             console.log(
               "Service Worker registered with scope:",

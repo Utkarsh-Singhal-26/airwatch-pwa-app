@@ -40,10 +40,25 @@ const withPWAConfig = withPWA({
           },
         },
       },
+      {
+        urlPattern: "/",
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "start-url",
+          plugins: [
+            {
+              cacheWillUpdate: async function (params) {
+                return params.response;
+              },
+            },
+          ],
+        },
+      },
     ],
   },
   disable: process.env.NODE_ENV === "development",
 });
+
 
 const nextConfig: NextConfig = {
   /* other config options here */
