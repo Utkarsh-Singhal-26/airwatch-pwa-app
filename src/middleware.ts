@@ -18,14 +18,7 @@ export function middleware(request: NextRequest) {
 
   if (request.nextUrl.pathname.startsWith("/onboarding")) {
     if (session?.value) {
-      try {
-        const parsedSession = JSON.parse(session.value);
-        if (Date.now() <= parsedSession.expiresAt) {
-          return NextResponse.redirect(new URL("/dashboard", request.url));
-        }
-      } catch (error) {
-        console.error("Error parsing session in middleware:", error);
-      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
   }
@@ -34,21 +27,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
-  try {
-    const parsedSession = JSON.parse(session.value);
-    if (Date.now() > parsedSession.expiresAt) {
-      const response = NextResponse.redirect(
-        new URL("/onboarding", request.url)
-      );
-      response.cookies.delete(SESSION_KEY as string);
-      return response;
-    }
-  } catch (error) {
-    console.error("Error validating session in middleware:", error);
-    const response = NextResponse.redirect(new URL("/onboarding", request.url));
-    response.cookies.delete(SESSION_KEY as string);
-    return response;
-  }
+  const cookieStore = request.cookies;
+
+  cookieStore.set({
+    name: SESSION_KEY as string,
+    value: session.value,
+  });
 
   return NextResponse.next();
 }

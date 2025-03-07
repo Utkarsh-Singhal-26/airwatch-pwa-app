@@ -1,53 +1,65 @@
 "use server";
 
 import { UserSession } from "@/interfaces/session";
+import { User } from "@/interfaces/user";
 import { cookies } from "next/headers";
 
-const SESSION_EXPIRATION_TIME = process.env.SESSION_EXPIRATION_TIME;
-const SESSION_KEY = process.env.SESSION_KEY;
+const SESSION_EXPIRATION_TIME =
+  process.env.NEXT_PUBLIC_SESSION_EXPIRATION_TIME || "157680000000";
+const SESSION_KEY = process.env.NEXT_PUBLIC_SESSION_KEY || "airwatch_session";
 
-if (!SESSION_EXPIRATION_TIME) {
-  throw new Error("SESSION_EXPIRATION_TIME is not defined");
-}
-
-if (!SESSION_KEY) {
-  throw new Error("SESSION_KEY is not defined");
-}
-
-async function getSession(): Promise<UserSession | Error> {
+function getSession(): UserSession | Error {
   try {
-    const cookieStore = await cookies();
-    const currentSessionCookie = cookieStore.get(SESSION_KEY as string);
+    if (typeof window === "undefined") {
+      return new Error("localStorage is not available in server context");
+    }
 
-    return currentSessionCookie?.value
-      ? JSON.parse(currentSessionCookie.value)
-      : new Error("No session found");
-  } catch {
+    const sessionData = localStorage.getItem(SESSION_KEY);
+
+    if (!sessionData) {
+      return new Error("No session found");
+    }
+
+    const session = JSON.parse(sessionData) as UserSession;
+
+    if (session.expiresAt && session.expiresAt < Date.now()) {
+      localStorage.removeItem(SESSION_KEY);
+      return new Error("Session expired");
+    }
+
+    return session;
+  } catch (error) {
+    console.error("Failed to get session:", error);
     return new Error("Failed to get session");
   }
 }
 
 async function createSession(
-  session: Partial<UserSession>
+  sessionData: Partial<UserSession>
 ): Promise<UserSession | Error> {
   try {
-    const cookieStore = await cookies();
-    const currentSessionCookie = cookieStore.get(SESSION_KEY as string);
+    if (typeof window === "undefined") {
+      return new Error("localStorage is not available in server context");
+    }
 
-    const expirationDate = new Date(
-      Date.now() + +(SESSION_EXPIRATION_TIME as string)
-    );
+    const cookieStore = await cookies();
+    const currentSessionData = localStorage.getItem(SESSION_KEY);
+    const expirationDate = new Date(Date.now() + +SESSION_EXPIRATION_TIME);
 
     const updatedSession = {
-      ...(currentSessionCookie?.value
-        ? JSON.parse(currentSessionCookie.value)
+      ...(currentSessionData
+        ? JSON.parse(currentSessionData)
         : {
             expiresAt: expirationDate.getTime(),
             user: {
               name: "",
-              email: "",
-              phone: "",
-            },
+              age: 0,
+              gender: "",
+              activityLevel: "",
+              healthConditions: [],
+              outdoorActivities: [],
+              commute: "",
+            } as User,
             settings: {
               pushNotifications: false,
               dailyForecast: false,
@@ -56,15 +68,34 @@ async function createSession(
               locationAccess: false,
               temperatureUnit: "celsius",
             },
+            notification: {
+              hour: 8,
+              minute: 0,
+            },
             dailyChallenge: {
               lastUpdated: Date.now(),
               completed: false,
+              challenge: "",
+            },
+            recommendations: {
+              lastUpdated: Date.now(),
+              items: [],
+            },
+            aqiData: {
+              value: 0,
+              lastUpdated: Date.now(),
+              location: {
+                lat: 0,
+                lng: 0,
+                name: "",
+              },
             },
           }),
-      ...session,
+      ...sessionData,
     };
 
-    cookieStore.set(SESSION_KEY as string, JSON.stringify(updatedSession), {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+    cookieStore.set(SESSION_KEY as string, sessionData.user?.name || "", {
       expires: expirationDate,
       path: "/",
       httpOnly: true,
@@ -72,19 +103,127 @@ async function createSession(
       sameSite: "lax",
     });
 
-    return await getSession();
-  } catch {
+    return updatedSession as UserSession;
+  } catch (error) {
+    console.error("Failed to create session:", error);
     return new Error("Failed to create session");
   }
 }
 
-async function deleteSession(): Promise<void | Error> {
+function deleteSession(): void | Error {
   try {
-    const cookieStore = await cookies();
-    cookieStore.delete(SESSION_KEY as string);
-  } catch {
+    if (typeof window === "undefined") {
+      return new Error("localStorage is not available in server context");
+    }
+
+    localStorage.removeItem(SESSION_KEY);
+  } catch (error) {
+    console.error("Failed to delete session:", error);
     return new Error("Failed to delete session");
   }
 }
 
-export { createSession, deleteSession, getSession };
+function isSessionValid(): boolean {
+  const session = getSession();
+  return !(session instanceof Error);
+}
+
+async function updateNotificationTime(
+  hour: number,
+  minute: number
+): Promise<UserSession | Error> {
+  try {
+    const session = getSession();
+    if (session instanceof Error) {
+      return session;
+    }
+
+    return await createSession({
+      notification: {
+        hour,
+        minute,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to update notification time:", error);
+    return new Error("Failed to update notification time");
+  }
+}
+
+async function updateAqiData(
+  value: number,
+  location: { lat: number; lng: number; name: string }
+): Promise<UserSession | Error> {
+  try {
+    const session = getSession();
+    if (session instanceof Error) {
+      return session;
+    }
+
+    return await createSession({
+      aqiData: {
+        value,
+        lastUpdated: Date.now(),
+        location,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to update AQI data:", error);
+    return new Error("Failed to update AQI data");
+  }
+}
+
+async function updateDailyChallenge(
+  challenge: string,
+  completed: boolean = false
+): Promise<UserSession | Error> {
+  try {
+    const session = getSession();
+    if (session instanceof Error) {
+      return session;
+    }
+
+    return await createSession({
+      dailyChallenge: {
+        challenge,
+        completed,
+        lastUpdated: Date.now(),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to update daily challenge:", error);
+    return new Error("Failed to update daily challenge");
+  }
+}
+
+async function updateRecommendations(
+  items: string[]
+): Promise<UserSession | Error> {
+  try {
+    const session = getSession();
+    if (session instanceof Error) {
+      return session;
+    }
+
+    return await createSession({
+      recommendations: {
+        items,
+        lastUpdated: Date.now(),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to update recommendations:", error);
+    return new Error("Failed to update recommendations");
+  }
+}
+
+export {
+  createSession,
+  deleteSession,
+  getSession,
+  isSessionValid,
+  updateAqiData,
+  updateDailyChallenge,
+  updateNotificationTime,
+  updateRecommendations,
+};

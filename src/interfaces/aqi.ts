@@ -1,9 +1,9 @@
-export interface HistoryEntry {
+interface HistoryEntry {
   aqi: number;
   timestamp: number;
 }
 
-export interface AQI {
+interface AQI {
   aqi: number;
   pm25: number;
   pm10: number;
@@ -18,3 +18,5 @@ export interface AQI {
   dailyHistory: HistoryEntry[];
   weeklyHistory: HistoryEntry[];
 }
+
+export type { AQI, HistoryEntry };

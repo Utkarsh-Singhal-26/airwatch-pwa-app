@@ -1,4 +1,13 @@
-import { createSession, deleteSession, getSession } from "@/app/actions";
+import {
+  createSession,
+  deleteSession,
+  getSession,
+  isSessionValid,
+  updateAqiData,
+  updateDailyChallenge,
+  updateNotificationTime,
+  updateRecommendations,
+} from "@/app/actions";
 import { UserSession } from "@/interfaces/session";
 import { AIAgent } from "@/lib/ai-agent";
 import { getCurrentLocation, getLocationName } from "@/lib/dashboard";
@@ -9,15 +18,14 @@ export function useSession() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchSession = useCallback(async () => {
+  const fetchSession = useCallback(() => {
     try {
-      const response: UserSession | Error = await getSession();
+      const response = getSession();
       if (response instanceof Error) {
         throw response;
       }
       setSession(response);
-    } catch (error) {
-      console.error("Error fetching session:", error);
+    } catch {
       setSession(null);
     } finally {
       setLoading(false);
@@ -26,24 +34,22 @@ export function useSession() {
 
   const updateSession = useCallback(async (updates: Partial<UserSession>) => {
     try {
-      const response: UserSession | Error = await createSession(updates);
+      const response = await createSession(updates);
       if (response instanceof Error) {
         throw response;
       }
       setSession(response);
       return response;
-    } catch (error) {
-      console.error("Error updating session:", error);
+    } catch {
       throw new Error("Failed to update session");
     }
   }, []);
 
-  const clearSession = useCallback(async () => {
+  const clearSession = useCallback(() => {
     try {
-      await deleteSession();
+      deleteSession();
       setSession(null);
-    } catch (error) {
-      console.error("Error clearing session:", error);
+    } catch {
       throw new Error("Failed to clear session");
     }
   }, []);
@@ -53,51 +59,17 @@ export function useSession() {
 
     try {
       const position = await getCurrentLocation();
-      if (!position) {
-        throw new Error("Could not get current location");
-      }
+      if (!position) return null;
 
       const { latitude: lat, longitude: lng } = position.coords;
       const name = await getLocationName(lat, lng);
-
       const aqi = await getAQIData(lat, lng);
-      if (aqi === null) {
-        throw new Error("Could not fetch AQI data");
-      }
+      if (!aqi) return null;
 
-      const response = await fetch(
-        `https://api.waqi.info/feed/geo:${lat};${lng}/?token=${process.env.NEXT_PUBLIC_WAQI_API_TOKEN}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`WAQI API returned status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (!data || data.status !== "ok" || !data.data) {
-        throw new Error("Invalid WAQI data structure");
-      }
-
-      const time = data.data.time?.iso
-        ? new Date(data.data.time.iso).getTime()
-        : Date.now();
-
-      await updateSession({
-        ...session,
-        aqiData: {
-          value: aqi,
-          lastUpdated: time,
-          location: {
-            lat,
-            lng,
-            name,
-          },
-        },
-      });
-
-      return aqi;
-    } catch (error) {
-      console.error("Error updating AQI data:", error);
+      const updatedSession = await updateAqiData(aqi, { lat, lng, name });
+      setSession(updatedSession instanceof Error ? session : updatedSession);
+      return updateSession;
+    } catch {
       return null;
     }
   }, [session, updateSession]);
@@ -148,6 +120,7 @@ export function useSession() {
             completed: false,
             challenge,
           };
+          await updateDailyChallenge(challenge);
         }
 
         if (shouldUpdateRecommendations && recommendations) {
@@ -155,15 +128,12 @@ export function useSession() {
             lastUpdated: now,
             items: recommendations,
           };
+          await updateRecommendations(recommendations);
         }
 
         const updatedSession = await updateSession(updates);
         return updatedSession.dailyChallenge;
-      } catch (error) {
-        console.error(
-          "Error generating daily challenge and recommendations:",
-          error
-        );
+      } catch {
         return null;
       }
     }
@@ -182,5 +152,10 @@ export function useSession() {
     clearSession,
     getDailyChallenge,
     updateAQIData,
+    isSessionValid,
+    updateNotificationTime,
+    updateAqiData,
+    updateDailyChallenge,
+    updateRecommendations,
   };
 }

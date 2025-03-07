@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useSession } from "@/hooks/useSession";
 import { AQI } from "@/interfaces/aqi";
 import { fetchAQIData } from "@/lib/dashboard";
 import { getAQILabel } from "@/lib/map-data";
@@ -22,15 +23,19 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Share() {
+  const { session } = useSession();
+
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<{
     lat: number;
     lng: number;
     name: string;
-  } | null>(null);
+  } | null>(session?.settings.locationAccess ? session.aqiData.location : null);
   const [aqiData, setAqiData] = useState<AQI | null>(null);
 
   useEffect(() => {
+    if (!session) return;
+
     const fetchData = () => {
       fetchAQIData(
         (loc) => setLocation(loc),
@@ -42,7 +47,17 @@ export default function Share() {
     fetchData();
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session]);
+
+  if (!session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <p className="text-lg font-medium text-gray-600">
+          Please log in to view air quality data.
+        </p>
+      </div>
+    );
+  }
 
   const getShareMessage = () => {
     if (!aqiData || !location) return "";

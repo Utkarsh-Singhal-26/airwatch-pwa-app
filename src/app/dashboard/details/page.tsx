@@ -5,6 +5,7 @@ import { PollutantChart } from "@/components/pollutant-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSession } from "@/hooks/useSession";
 import { AQI } from "@/interfaces/aqi";
 import { fetchAQIData } from "@/lib/dashboard";
 import { getAQILabel } from "@/lib/map-data";
@@ -13,6 +14,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Details() {
+  const { session } = useSession();
+
   const [activeTab, setActiveTab] = useState("hourly");
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<{
@@ -23,6 +26,8 @@ export default function Details() {
   const [aqiData, setAqiData] = useState<AQI | null>(null);
 
   useEffect(() => {
+    if (!session) return;
+
     const fetchData = () => {
       fetchAQIData(
         (loc) => setLocation(loc),
@@ -34,7 +39,17 @@ export default function Details() {
     fetchData();
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session]);
+
+  if (!session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <p className="text-lg font-medium text-gray-600">
+          Please log in to view air quality data.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

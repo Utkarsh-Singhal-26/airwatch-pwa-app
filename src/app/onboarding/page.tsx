@@ -23,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useSession } from "@/hooks/useSession";
 import type { User as UserProfile } from "@/interfaces/user";
+import { generateToken } from "@/lib/notification";
 import {
   Activity,
   ArrowLeft,
@@ -40,25 +41,33 @@ export default function Onboarding() {
   const router = useRouter();
   const { session, updateSession } = useSession();
 
-  const [step, setStep] = useState(1);
-  const [locationPermission, setLocationPermission] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState(false);
+  const [step, setStep] = useState(3);
+  const [locationPermission, setLocationPermission] = useState(
+    session?.settings?.locationAccess || false
+  );
+  const [notificationPermission, setNotificationPermission] = useState(
+    session?.settings?.pushNotifications || false
+  );
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [notificationError, setNotificationError] = useState<string | null>(
+    null
+  );
 
-  const [user, setUser] = useState<UserProfile>({
-    name: "",
-    age: 0,
-    gender: "",
-    activityLevel: "",
-    healthConditions: [],
-    outdoorActivities: [],
-    commute: "",
-  });
+  const [user, setUser] = useState<UserProfile>(
+    session?.user || {
+      name: "",
+      age: 0,
+      gender: "",
+      activityLevel: "",
+      healthConditions: [],
+      outdoorActivities: [],
+      commute: "",
+    }
+  );
 
   const requestLocationPermission = async () => {
     try {
       const result = await navigator.permissions.query({ name: "geolocation" });
-
       if (result.state === "granted") {
         setLocationPermission(true);
         setLocationError(null);
@@ -96,12 +105,30 @@ export default function Onboarding() {
     }
   };
 
-  useEffect(() => {
-    const savedPermission = localStorage.getItem("locationPermission");
-    if (savedPermission === "granted") {
-      setLocationPermission(true);
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (checked) {
+      if (Notification.permission === "granted") {
+        await generateToken();
+        setNotificationPermission(true);
+        setNotificationError(null);
+      } else {
+        Notification.requestPermission().then(async (permission) => {
+          if (permission === "granted") {
+            await generateToken();
+            setNotificationPermission(true);
+            setNotificationError(null);
+          } else {
+            setNotificationPermission(false);
+            setNotificationError(
+              "Please enable notifications in your browser."
+            );
+          }
+        });
+      }
+    } else {
+      setNotificationPermission(false);
     }
-  }, []);
+  };
 
   const handleHealthConditionChange = (condition: string) => {
     setUser((prev) => ({
@@ -121,11 +148,17 @@ export default function Onboarding() {
     }));
   };
 
+  useEffect(() => {
+    if (session) {
+      setUser(session.user);
+    }
+  }, [session]);
+
   const nextStep = async () => {
     if (step < 5) {
       setStep(step + 1);
     } else {
-      await updateSession({
+      updateSession({
         ...session,
         user,
         settings: {
@@ -134,8 +167,8 @@ export default function Onboarding() {
           pushNotifications: notificationPermission,
           dailyForecast: session?.settings?.dailyForecast ?? false,
           aqiAlerts: session?.settings?.aqiAlerts ?? false,
-          aqiThreshold: session?.settings?.aqiThreshold ?? 100,
-          temperatureUnit: session?.settings?.temperatureUnit ?? "celsius",
+          aqiThreshold: session?.settings?.aqiThreshold ?? 0,
+          temperatureUnit: session?.settings?.temperatureUnit ?? "C",
         },
       });
       router.push("/dashboard");
@@ -233,21 +266,31 @@ export default function Onboarding() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5" />
-                  <div className="space-y-1">
-                    <Label htmlFor="notifications">Notifications</Label>
-                    <p className="text-sm text-gray-500">
-                      Get air quality alerts
-                    </p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Bell className="h-5 w-5" />
+                    <div className="space-y-1">
+                      <Label htmlFor="notification">Notifications</Label>
+                      <p className="text-sm text-gray-500">
+                        Required for local air quality data
+                      </p>
+                    </div>
                   </div>
+                  <Switch
+                    id="notification"
+                    checked={notificationPermission}
+                    onCheckedChange={handleNotificationToggle}
+                  />
                 </div>
-                <Switch
-                  id="notifications"
-                  checked={notificationPermission}
-                  onCheckedChange={setNotificationPermission}
-                />
+                {notificationError && (
+                  <p className="text-sm text-red-500">{notificationError}</p>
+                )}
+                {notificationPermission && (
+                  <p className="text-sm text-green-600">
+                    Notification access granted!
+                  </p>
+                )}
               </div>
             </div>
           )}

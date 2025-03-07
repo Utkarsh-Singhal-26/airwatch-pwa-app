@@ -1,6 +1,6 @@
 import { User } from "./user";
 
-export interface UserSession {
+interface UserSession {
   user: User;
   settings: {
     pushNotifications: boolean;
@@ -9,6 +9,10 @@ export interface UserSession {
     aqiThreshold: number;
     locationAccess: boolean;
     temperatureUnit: string;
+  };
+  notification: {
+    hour: number;
+    minute: number;
   };
   dailyChallenge: {
     lastUpdated: number;
@@ -30,3 +34,5 @@ export interface UserSession {
   };
   expiresAt: number;
 }
+
+export type { UserSession };

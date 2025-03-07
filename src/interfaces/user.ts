@@ -7,4 +7,5 @@ interface User {
   outdoorActivities: string[];
   commute: string;
 }
+
 export type { User };
