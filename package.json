@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/generate-sw.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -25,6 +26,7 @@
     "@tailwindcss/postcss": "^4.0.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
     "firebase": "^11.4.0",
     "groq-sdk": "^0.15.0",
     "lucide-react": "^0.476.0",

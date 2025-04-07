@@ -6,19 +6,19 @@ importScripts(
 );
 
 firebase.initializeApp({
-  apiKey: self.FIREBASE_API_KEY,
-  authDomain: self.FIREBASE_AUTH_DOMAIN,
-  projectId: self.FIREBASE_PROJECT_ID,
-  storageBucket: self.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: self.FIREBASE_MESSAGING_SENDER_ID,
-  appId: self.FIREBASE_APP_ID,
+  apiKey: "__FIREBASE_API_KEY__",
+  authDomain: "__FIREBASE_AUTH_DOMAIN__",
+  projectId: "__FIREBASE_PROJECT_ID__",
+  storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+  messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+  appId: "__FIREBASE_APP_ID__",
 });
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log(
-    "[firebase-messaging-sw.js] Received background message ",
+    "[firebase-messaging-sw.js] Received background message",
     payload
   );
 
