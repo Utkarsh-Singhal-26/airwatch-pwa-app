@@ -35,7 +35,7 @@ export default function MobileNavbar() {
     <div className="fixed bottom-0 left-0 right-0 z-50">
       <div className="h-1 bg-gradient-to-t from-transparent to-gray-200/50" />
 
-      <div className="border-t border-gray-200 backdrop-blur-lg bg-white/90 dark:bg-gray-950/90 dark:border-gray-800">
+      <div className="border-t border-gray-200 backdrop-blur-lg bg-white/90">
         <div className="container mx-auto max-w-md py-2">
           <nav className="flex items-center justify-around">
             {navItems.map((item) => {
@@ -47,7 +47,7 @@ export default function MobileNavbar() {
                       "flex flex-col items-center justify-center py-2 transition-all duration-200 ease-in-out",
                       isActive
                         ? "text-primary"
-                        : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                        : "text-gray-500 hover:text-gray-900"
                     )}
                   >
                     <div className="relative flex items-center justify-center">

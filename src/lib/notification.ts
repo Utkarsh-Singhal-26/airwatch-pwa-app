@@ -10,7 +10,6 @@ const generateToken = async () => {
       const token = await getToken(messaging, {
         vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
       });
-      console.log("Token: ", token);
 
       localStorage.setItem("fcm_token", token);
 
@@ -41,7 +40,7 @@ const setupForegroundMessaging = () => {
   });
 };
 
-const scheduleDailyNotification = (hour: number, minute: number = 0) => {
+const scheduleDailyNotification = async (hour: number, minute: number = 0) => {
   if (typeof window === "undefined") return { hour, minute };
 
   localStorage.setItem("notification_hour", hour.toString());
@@ -62,23 +61,29 @@ const scheduleDailyNotification = (hour: number, minute: number = 0) => {
     scheduleTime.setDate(scheduleTime.getDate() + 1);
   }
 
+  const user = localStorage.getItem("airwatch_session");
+  const userChallenge = JSON.parse(user || "{}").dailyChallenge?.challenge;
+  const userRecommendations = JSON.parse(user || "{}").recommendations?.items;
+
   const delay = scheduleTime.getTime() - now.getTime();
+  console.log("Scheduling notification in", delay / 1000, "seconds");
 
   setTimeout(() => {
-    displayLocalNotification(
-      "Daily Notification",
-      "This is a scheduled notification."
-    );
+    displayLocalNotification("Daily Challenge", userChallenge || "");
 
-    setInterval(
-      () => {
-        displayLocalNotification(
-          "Daily Reminder",
-          "This is a scheduled reminder."
+    userRecommendations
+      ?.slice(0, 3)
+      .forEach((recommendation: string, index: number) => {
+        setTimeout(
+          () => {
+            displayLocalNotification(
+              `Daily Reminder ${index + 1}`,
+              recommendation || ""
+            );
+          },
+          (index + 1) * 5000
         );
-      },
-      24 * 60 * 60 * 1000
-    );
+      });
   }, delay);
 
   return { hour, minute };

@@ -41,7 +41,19 @@ export default function Onboarding() {
   const router = useRouter();
   const { session, updateSession } = useSession();
 
-  const [step, setStep] = useState(3);
+  const getNormalizedUser = (
+    rawUser: Partial<UserProfile> = {}
+  ): UserProfile => ({
+    name: rawUser.name ?? "",
+    age: rawUser.age ?? 0,
+    gender: rawUser.gender ?? "",
+    activityLevel: rawUser.activityLevel ?? "",
+    healthConditions: rawUser.healthConditions ?? [],
+    outdoorActivities: rawUser.outdoorActivities ?? [],
+    commute: rawUser.commute ?? "",
+  });
+
+  const [step, setStep] = useState(1);
   const [locationPermission, setLocationPermission] = useState(
     session?.settings?.locationAccess || false
   );
@@ -54,15 +66,7 @@ export default function Onboarding() {
   );
 
   const [user, setUser] = useState<UserProfile>(
-    session?.user || {
-      name: "",
-      age: 0,
-      gender: "",
-      activityLevel: "",
-      healthConditions: [],
-      outdoorActivities: [],
-      commute: "",
-    }
+    getNormalizedUser(session?.user)
   );
 
   const requestLocationPermission = async () => {
@@ -149,8 +153,8 @@ export default function Onboarding() {
   };
 
   useEffect(() => {
-    if (session) {
-      setUser(session.user);
+    if (session?.user) {
+      setUser(getNormalizedUser(session.user));
     }
   }, [session]);
 
@@ -158,7 +162,7 @@ export default function Onboarding() {
     if (step < 5) {
       setStep(step + 1);
     } else {
-      updateSession({
+      await updateSession({
         ...session,
         user,
         settings: {
@@ -171,6 +175,8 @@ export default function Onboarding() {
           temperatureUnit: session?.settings?.temperatureUnit ?? "C",
         },
       });
+      localStorage.setItem("notification_hour", "8");
+      localStorage.setItem("notification_minute", "0");
       router.push("/dashboard");
     }
   };

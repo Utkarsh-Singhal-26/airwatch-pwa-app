@@ -43,7 +43,9 @@ export class AIAgent {
       const { recommendations } = await this.fetchFromAI("recommendations", {
         currentAQI,
       });
-      return recommendations;
+      return recommendations.length > 3
+        ? recommendations.slice(1)
+        : recommendations;
     } catch (error) {
       console.error("Error getting recommendations:", error);
       return [

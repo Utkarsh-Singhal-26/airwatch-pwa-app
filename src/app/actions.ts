@@ -1,8 +1,7 @@
-"use server";
+"use client";
 
 import { UserSession } from "@/interfaces/session";
 import { User } from "@/interfaces/user";
-import { cookies } from "next/headers";
 
 const SESSION_EXPIRATION_TIME =
   process.env.NEXT_PUBLIC_SESSION_EXPIRATION_TIME || "157680000000";
@@ -42,7 +41,6 @@ async function createSession(
       return new Error("localStorage is not available in server context");
     }
 
-    const cookieStore = await cookies();
     const currentSessionData = localStorage.getItem(SESSION_KEY);
     const expirationDate = new Date(Date.now() + +SESSION_EXPIRATION_TIME);
 
@@ -95,13 +93,6 @@ async function createSession(
     };
 
     localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
-    cookieStore.set(SESSION_KEY as string, sessionData.user?.name || "", {
-      expires: expirationDate,
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
 
     return updatedSession as UserSession;
   } catch (error) {

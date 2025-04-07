@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSession } from "@/hooks/useSession";
+import { generateToken } from "@/lib/notification";
 import { Bell, ChevronRight, Info, LogOut, MapPin, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,6 +14,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const { session, updateSession, clearSession } = useSession();
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [notificationError, setNotificationError] = useState<string | null>(
+    null
+  );
 
   const [settings, setSettings] = useState({
     pushNotifications: false,
@@ -62,6 +66,31 @@ export default function SettingsPage() {
     }
   };
 
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (checked) {
+      if (Notification.permission === "granted") {
+        await generateToken();
+        updateSettings("pushNotifications", true);
+        setNotificationError(null);
+      } else {
+        Notification.requestPermission().then(async (permission) => {
+          if (permission === "granted") {
+            await generateToken();
+            updateSettings("pushNotifications", true);
+            setNotificationError(null);
+          } else {
+            updateSettings("pushNotifications", false);
+            setNotificationError(
+              "Please enable notifications in your browser."
+            );
+          }
+        });
+      }
+    } else {
+      updateSettings("pushNotifications", false);
+    }
+  };
+
   const handleLocationToggle = (checked: boolean) => {
     if (checked) {
       requestLocationPermission();
@@ -95,24 +124,39 @@ export default function SettingsPage() {
 
       <Card className="mb-6 border-gray-200">
         <CardHeader className="pb-2">
-          <CardTitle>Notifications</CardTitle>
+          <CardTitle>Notification Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <Label htmlFor="push-notifications">Push Notifications</Label>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Bell className="h-5 w-5" />
+                <div className="space-y-1">
+                  <Label htmlFor="location-access">
+                    Push Notification Access
+                  </Label>
+                  <p className="text-sm text-gray-500">
+                    Required for push notifications
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="push-notifications"
+                checked={settings.pushNotifications}
+                onCheckedChange={handleNotificationToggle}
+              />
             </div>
-            <Switch
-              id="push-notifications"
-              checked={settings.pushNotifications}
-              onCheckedChange={(checked) =>
-                updateSettings("pushNotifications", checked)
-              }
-            />
+            {notificationError && (
+              <p className="text-sm text-red-500">{notificationError}</p>
+            )}
+            {settings.pushNotifications && (
+              <p className="text-sm text-green-600">
+                Notification access granted!
+              </p>
+            )}
           </div>
 
-          <div className="flex items-center justify-between">
+          {/* <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Bell className="h-5 w-5" />
               <Label htmlFor="daily-forecast">Daily Forecast</Label>
@@ -138,7 +182,7 @@ export default function SettingsPage() {
                 updateSettings("aqiAlerts", checked)
               }
             />
-          </div>
+          </div> */}
         </CardContent>
       </Card>
 

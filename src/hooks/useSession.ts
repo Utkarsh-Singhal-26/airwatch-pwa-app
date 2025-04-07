@@ -12,11 +12,13 @@ import { UserSession } from "@/interfaces/session";
 import { AIAgent } from "@/lib/ai-agent";
 import { getCurrentLocation, getLocationName } from "@/lib/dashboard";
 import { getAQIData } from "@/lib/map-data";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useSession() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const isUpdating = useRef(false);
+  const hasCheckedToday = useRef(false);
 
   const fetchSession = useCallback(() => {
     try {
@@ -55,7 +57,7 @@ export function useSession() {
   }, []);
 
   const updateAQIData = useCallback(async () => {
-    if (!session?.settings.locationAccess) return null;
+    if (!session?.settings?.locationAccess) return null;
 
     try {
       const position = await getCurrentLocation();
@@ -67,14 +69,25 @@ export function useSession() {
       if (!aqi) return null;
 
       const updatedSession = await updateAqiData(aqi, { lat, lng, name });
-      setSession(updatedSession instanceof Error ? session : updatedSession);
-      return updateSession;
+
+      return updatedSession instanceof Error ? null : updatedSession;
     } catch {
       return null;
     }
-  }, [session, updateSession]);
+  }, [session?.settings?.locationAccess]);
 
-  const needsUpdate = useCallback((lastUpdated: number | undefined) => {
+  const isItTimeToUpdate = useCallback(() => {
+    const now = new Date();
+    const hour = now.getHours();
+
+    if (hour === 0 && hasCheckedToday.current) {
+      hasCheckedToday.current = false;
+    }
+
+    return hour >= 3 && hour < 4 && !hasCheckedToday.current;
+  }, []);
+
+  const shouldUpdate = useCallback((lastUpdated: number | undefined) => {
     if (!lastUpdated) return true;
 
     const lastDate = new Date(lastUpdated);
@@ -88,33 +101,36 @@ export function useSession() {
   }, []);
 
   const getDailyChallenge = useCallback(async () => {
-    if (!session?.user) return null;
+    if (!session?.user || isUpdating.current) return null;
 
-    const shouldUpdateChallenge = needsUpdate(
+    if (!isItTimeToUpdate()) {
+      return session.dailyChallenge;
+    }
+
+    hasCheckedToday.current = true;
+
+    const shouldUpdateChallenge = shouldUpdate(
       session.dailyChallenge?.lastUpdated
     );
-    const shouldUpdateRecommendations = needsUpdate(
+    const shouldUpdateRecommendations = shouldUpdate(
       session.recommendations?.lastUpdated
     );
 
-    if (shouldUpdateChallenge || shouldUpdateRecommendations) {
-      try {
-        const currentAQI = session.aqiData?.value ?? 142;
-        const aiAgent = new AIAgent(session.user);
+    if (!shouldUpdateChallenge && !shouldUpdateRecommendations) {
+      return session.dailyChallenge;
+    }
 
-        const [challenge, recommendations] = await Promise.all([
-          shouldUpdateChallenge ? aiAgent.getDailyChallenge(currentAQI) : null,
-          shouldUpdateRecommendations
-            ? aiAgent.getPersonalizedRecommendations(currentAQI)
-            : null,
-        ]);
+    isUpdating.current = true;
 
-        const now = Date.now();
-        const updates: Partial<UserSession> = {
-          ...session,
-        };
+    try {
+      const currentAQI = session.aqiData?.value ?? 142;
+      const aiAgent = new AIAgent(session.user);
+      const now = Date.now();
+      const updates: Partial<UserSession> = {};
 
-        if (shouldUpdateChallenge && challenge) {
+      if (shouldUpdateChallenge) {
+        const challenge = await aiAgent.getDailyChallenge(currentAQI);
+        if (challenge) {
           updates.dailyChallenge = {
             lastUpdated: now,
             completed: false,
@@ -122,28 +138,48 @@ export function useSession() {
           };
           await updateDailyChallenge(challenge);
         }
+      }
 
-        if (shouldUpdateRecommendations && recommendations) {
+      if (shouldUpdateRecommendations) {
+        const recommendations =
+          await aiAgent.getPersonalizedRecommendations(currentAQI);
+        if (recommendations && Array.isArray(recommendations)) {
           updates.recommendations = {
             lastUpdated: now,
             items: recommendations,
           };
           await updateRecommendations(recommendations);
         }
+      }
 
+      if (Object.keys(updates).length > 0) {
         const updatedSession = await updateSession(updates);
         return updatedSession.dailyChallenge;
-      } catch {
-        return null;
       }
-    }
 
-    return session.dailyChallenge;
-  }, [session, updateSession, needsUpdate]);
+      return session.dailyChallenge;
+    } catch {
+      return session.dailyChallenge;
+    } finally {
+      isUpdating.current = false;
+    }
+  }, [session, updateSession, shouldUpdate, isItTimeToUpdate]);
 
   useEffect(() => {
     fetchSession();
   }, [fetchSession]);
+
+  useEffect(() => {
+    const checkScheduledUpdate = () => {
+      if (isItTimeToUpdate()) {
+        getDailyChallenge();
+      }
+    };
+
+    const intervalId = setInterval(checkScheduledUpdate, 60 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [isItTimeToUpdate, getDailyChallenge]);
 
   return {
     session,
