@@ -6,50 +6,22 @@ const withPWAConfig = withPWA({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
+  publicExcludes: ["!firebase-messaging-sw.js"],
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
-      {
-        urlPattern: ({ request }) => request.destination === "image",
-        handler: "CacheFirst",
-        options: {
-          cacheName: "images-cache",
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 7 * 24 * 60 * 60,
-          },
-        },
-      },
-      {
-        urlPattern: ({ request }) =>
-          request.destination === "script" || request.destination === "style",
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "static-resources",
-          expiration: {
-            maxAgeSeconds: 60 * 60 * 24 * 30,
-          },
-        },
-      },
-      {
-        urlPattern: /^https:\/\/.+/,
-        handler: "NetworkFirst",
-        options: {
-          cacheName: "pages-cache",
-          expiration: {
-            maxEntries: 50,
-          },
-        },
-      },
       {
         urlPattern: "/",
         handler: "NetworkFirst",
         options: {
           cacheName: "start-url",
           plugins: [
-            {
-              cacheWillUpdate: async function (params) {
-                return params.response;
+           {
+              cacheWillUpdate: async ({ response }) => {
+                if (!response || response.status !== 200) {
+                  return null;
+                }
+                return response;
               },
             },
           ],
