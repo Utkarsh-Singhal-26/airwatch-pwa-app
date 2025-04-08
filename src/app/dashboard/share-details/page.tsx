@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useSession } from "@/hooks/useSession";
 import { AQI } from "@/interfaces/aqi";
-import { fetchAQIData } from "@/lib/dashboard";
+import { fetchAQIDataWithParams } from "@/lib/dashboard";
 import { getAQILabel } from "@/lib/map-data";
 import {
   ArrowLeft,
@@ -20,25 +19,23 @@ import {
   Twitter,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function Share() {
-  const { session } = useSession();
+export default function ShareDetails() {
+  const searchParams = useSearchParams();
+  const lat = parseFloat(searchParams.get("lat") || "0");
+  const lng = parseFloat(searchParams.get("lng") || "0");
+  const name = searchParams.get("name") || "Unknown Location";
 
   const [loading, setLoading] = useState(false);
-  const [location, setLocation] = useState<{
-    lat: number;
-    lng: number;
-    name: string;
-  } | null>(session?.settings.locationAccess ? session.aqiData.location : null);
   const [aqiData, setAqiData] = useState<AQI | null>(null);
 
   useEffect(() => {
-    if (!session) return;
-
-    const fetchData = () => {
-      fetchAQIData(
-        (loc) => setLocation(loc),
+    const fetchData = async () => {
+      setLoading(true);
+      await fetchAQIDataWithParams(
+        { lat, lng },
         (data) => setAqiData(data),
         (isLoading) => setLoading(isLoading)
       );
@@ -47,30 +44,17 @@ export default function Share() {
     fetchData();
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [session]);
-
-  if (!session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-lg font-medium text-gray-600">
-          Please log in to view air quality data.
-        </p>
-      </div>
-    );
-  }
+  }, [lat, lng, name]);
 
   const getShareMessage = () => {
-    if (!aqiData || !location) return "";
-
-    return `Current Air Quality in ${location.name}:
+    if (!aqiData) return "";
+    return `Current Air Quality in ${name}:
 AQI: ${aqiData.aqi} (${getAQILabel(aqiData.aqi)})
 PM2.5: ${aqiData.pm25} µg/m³
 Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
   };
 
-  const shareUrl = `https://airwatch.vercel.app/dashboard/share-details?lat=${location?.lat || ""}&lng=${
-    location?.lng || ""
-  }&name=${encodeURIComponent(location?.name || "")}`;
+  const shareUrl = `https://airwatch-pwa-app.vercel.app/dashboard/share-details?lat=${lat}&lng=${lng}&name=${encodeURIComponent(name)}`;
 
   const handleShare = async () => {
     const shareData = {
@@ -108,7 +92,7 @@ Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
         <Card className="mb-6 border-gray-200">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle>{location?.name || "Loading..."}</CardTitle>
+              <CardTitle>{name}</CardTitle>
               <div className="text-sm text-gray-500">
                 {loading ? (
                   "Updating..."
@@ -173,7 +157,7 @@ Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
               className="mt-6 w-full"
               size="lg"
               onClick={handleShare}
-              disabled={!aqiData || !location}
+              disabled={!aqiData}
             >
               <Share2 className="mr-2 h-5 w-5" />
               Share Air Quality
@@ -194,61 +178,29 @@ Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
 
               <TabsContent value="social" className="mt-0">
                 <div className="grid grid-cols-3 gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
-                  >
-                    <Twitter className="h-6 w-6" />
-                    <span className="text-xs">Twitter</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
-                  >
-                    <Facebook className="h-6 w-6" />
-                    <span className="text-xs">Facebook</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
-                  >
-                    <Linkedin className="h-6 w-6" />
-                    <span className="text-xs">LinkedIn</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
-                  >
-                    <MessageCircle className="h-6 w-6" />
-                    <span className="text-xs">WhatsApp</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
-                  >
-                    <Mail className="h-6 w-6" />
-                    <span className="text-xs">Email</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
-                    onClick={handleShare}
-                  >
-                    <Copy className="h-6 w-6" />
-                    <span className="text-xs">Copy</span>
-                  </Button>
+                  {[Twitter, Facebook, Linkedin, MessageCircle, Mail, Copy].map(
+                    (Icon, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        className="flex flex-col items-center gap-2 p-4 border-gray-200 h-16"
+                        onClick={Icon === Copy ? handleShare : undefined}
+                      >
+                        <Icon className="h-6 w-6" />
+                        <span className="text-xs">{Icon.name}</span>
+                      </Button>
+                    )
+                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="message" className="mt-0">
                 <div className="space-y-4">
-                  <div>
-                    <Textarea
-                      className="h-32 resize-none"
-                      value={getShareMessage()}
-                      readOnly
-                    />
-                  </div>
+                  <Textarea
+                    className="h-32 resize-none"
+                    value={getShareMessage()}
+                    readOnly
+                  />
                   <Button
                     className="w-full bg-black text-white hover:bg-gray-800"
                     onClick={handleShare}
@@ -269,12 +221,10 @@ Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
             <div className="rounded-md border border-gray-200 p-4">
               <div className="mb-2 text-lg font-bold">AirWatch Alert</div>
               <div className="mb-2 text-sm">
-                Current Air Quality in {location?.name || "Loading..."} is{" "}
+                Current Air Quality in {name} is{" "}
                 <span className="font-medium">
                   {aqiData
-                    ? `${getAQILabel(aqiData.aqi).toUpperCase()} (AQI: ${
-                        aqiData.aqi
-                      })`
+                    ? `${getAQILabel(aqiData.aqi).toUpperCase()} (AQI: ${aqiData.aqi})`
                     : "Loading..."}
                 </span>
               </div>
