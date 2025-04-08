@@ -68,7 +68,7 @@ PM2.5: ${aqiData.pm25} µg/m³
 Last updated: ${new Date(aqiData.lastUpdated).toLocaleTimeString()}`;
   };
 
-  const shareUrl = `https://airwatch.vercel.app/dashboard/share-details?lat=${location?.lat || ""}&lng=${
+  const shareUrl = `https://airwatch-pwa-app.vercel.app/dashboard/share-details?lat=${location?.lat || ""}&lng=${
     location?.lng || ""
   }&name=${encodeURIComponent(location?.name || "")}`;
 
