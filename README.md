@@ -1,36 +1,156 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AirWatch – Progressive Web App (PWA)
 
-## Getting Started
+**AirWatch** is a fully responsive, offline-capable Progressive Web App (PWA) built with **Next.js 15**, designed to monitor and visualize air quality data with real-time updates, interactive charts, and a clean UI. Integrated with **Firebase** for notifications and **AI tools** for smart insights, AirWatch provides a seamless and intelligent user experience.
 
-First, run the development server:
+### 🔗 Live Demo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+👉 [https://airwatch-pwa-app.vercel.app/](https://airwatch-pwa-app.vercel.app/)
+
+---
+
+## 🚀 Features
+
+- ⚡️ **Progressive Web App**: Installable, offline-first, service worker-enabled.
+- 🌐 **Real-Time AQI Dashboard**: Live air quality readings with detailed pollutant breakdowns.
+- 📍 **Google Maps Integration**: Visualize AQI data on an interactive map.
+- 🔔 **Push Notifications**: Stay updated with important air quality alerts (via Firebase).
+- 🧠 **AI Integration**: Smart assistant powered by `groq-sdk` for insights and predictions.
+- 🎨 **Beautiful UI**: Built using TailwindCSS, Radix UI, and Lucide Icons.
+- 📈 **Rich Visualizations**: Custom charts built with Recharts.
+- 🧩 **Modular & Typed**: Strongly typed TypeScript interfaces and scalable architecture.
+
+---
+
+## 🧱 Project Structure
+
+```
+.
+├── public/                  # Static assets
+├── src/
+│   ├── app/                # Next.js App Router pages
+│   ├── components/         # Reusable UI & charts
+│   ├── hooks/              # Custom React hooks
+│   ├── interfaces/         # TypeScript types
+│   ├── lib/                # Business logic (Firebase, AI, etc.)
+│   └── middleware.ts       # App middleware
+├── scripts/                # SW generator script
+├── firebase-messaging-sw.template.js
+├── next.config.ts          # PWA config
+└── ...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework**: [Next.js 15](https://nextjs.org/)
+- **Styling**: [TailwindCSS 4](https://tailwindcss.com/)
+- **Charts**: [Recharts](https://recharts.org/)
+- **Maps**: @react-google-maps/api
+- **State/UI**: [Radix UI](https://www.radix-ui.com/) + [Lucide Icons](https://lucide.dev/)
+- **PWA**: [@ducanh2912/next-pwa](https://ducanh-next-pwa.vercel.app/)
+- **Notifications**: [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)
+- **AI**: [Groq SDK](https://www.npmjs.com/package/groq-sdk)
+- **Type Checking**: TypeScript
+- **Linting/Formatting**: ESLint + Prettier
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📦 Installation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# 1. Clone the repo
+git clone https://github.com/Utkarsh-Singhal-26/airwatch-pwa-app.git
+cd airwatch
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 2. Install dependencies
+yarn install
 
-## Deploy on Vercel
+# 3. Set up environment variables
+vim .env.local
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# 4. Run the dev server
+yarn dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🧪 Scripts
+
+| Command          | Description                 |
+| ---------------- | --------------------------- |
+| `yarn dev`       | Run in development mode     |
+| `yarn build`     | Production build            |
+| `yarn start`     | Start the production server |
+| `yarn lint`      | Run ESLint                  |
+| `yarn format`    | Format code with Prettier   |
+| `yarn typecheck` | Run TypeScript type checks  |
+
+---
+
+## 🔐 Environment Variables
+
+```env
+GROQ_API_KEY=...
+
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...
+
+NEXT_PUBLIC_WAQI_API_TOKEN=...
+NEXT_PUBLIC_OPENWEATHER_API_KEY=...
+
+SESSION_KEY=...
+SESSION_EXPIRATION_TIME=...
+
+NODE_ENV=...
+
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=...
+```
+
+---
+
+## 📲 PWA & Firebase Setup
+
+1. Ensure your Firebase project has **Cloud Messaging** enabled.
+2. Replace `firebase-messaging-sw.template.js` with your actual messaging logic and rename to `firebase-messaging-sw.js`.
+3. Service worker registration is handled automatically for production builds.
+
+---
+
+## 🧠 AI Integration (Groq SDK)
+
+AI is powered by the [Groq SDK](https://www.npmjs.com/package/groq-sdk), used in the backend route under `/api/ai`. You can easily extend this to handle more natural language interactions or predictive analytics.
+
+---
+
+## 📌 Roadmap
+
+- 🔐 Add user authentication
+- 🤖 Expand AI assistant with more prompts
+- 🌍 Add multi-language (i18n) support
+- 🧾 Export AQI reports as downloadable PDF
+- 🧪 Add unit tests & end-to-end (E2E) tests
+
+---
+
+## 👨‍💻 Author
+
+**Utkarsh Singhal**  
+🔗 Portfolio: [https://utkarsh-singhal.is-a.dev](https://utkarsh-singhal.is-a.dev)
+
+---
+
+## 🧑‍💻 Contributing
+
+Contributions are welcome! Please open an issue or submit a PR for any improvements or bug fixes.
+
+---
+
+## 📄 License
+
+MIT License © 2025
